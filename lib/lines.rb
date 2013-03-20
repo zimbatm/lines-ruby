@@ -1,9 +1,5 @@
 require 'date'
 require 'time'
-require 'securerandom'
-require 'forwardable'
-
-# https://github.com/headius/ruby-atomic
 
 # Lines is an opinionated structured log format and a library
 # inspired by Slogger.
@@ -32,6 +28,9 @@ require 'forwardable'
 #       Lines.log(:sadfasdf => 3)
 #     end
 module Lines; extend self
+  # New lines in Lines
+  NL = "\n".freeze
+
   def outputters; @outputters ||= []; end
 
   # Used to select what output the lines will be put on.
@@ -59,6 +58,7 @@ module Lines; extend self
   def log_ctx(data=nil)
     @log_ctx ||= {}
     @log_ctx.merge!(data) if data
+    @log_ctx
   end
 
   # TODO: define exception format
@@ -112,7 +112,6 @@ module Lines; extend self
   end
 
   class StreamOutputter
-    LF = "\n".freeze
     # stream must accept a #write(str) message
     def initialize(stream = $stderr)
       @stream = stream
@@ -121,7 +120,7 @@ module Lines; extend self
     end
 
     def output(obj)
-      str = Dumper.dump(obj) + LF
+      str = Dumper.dump(obj) + NL
       stream.write str
     end
 
@@ -308,6 +307,7 @@ module Lines; extend self
 
   end
 
+  require 'securerandom'
   module UniqueIDs
     # A small utility to generate unique IDs that are as short as possible.
     #

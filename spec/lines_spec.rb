@@ -11,19 +11,19 @@ describe Lines do
 
   it "logs stuff" do
     Lines.log(foo: 'bar')
-    expect(output).to eq('foo=bar')
+    expect(output).to eq('foo=bar' + Lines::NL)
   end
 end
 
 describe Lines::Dumper do
   include Lines::Dumper
 
-  it "works" do
+  it do
     expect(dump foo: 'bar').to eq('foo=bar')
   end
 
   it "dumps empty strings correclty" do
-    expect(dump foo: '').to eq('foo=""')
+    expect(dump foo: '').to eq('foo=')
   end
 end
 
