@@ -50,10 +50,11 @@ module Lines; extend self
   #
   #   begin
   #      raise
-  #   rescue Lines.rescue => ex
+  #   rescue Lines.rescue([MyLibError]) => ex
   #      puts "This exception has been logged"
   #   end
   def rescue(includes=[StandardError], ex=$!)
+    return unless ex
     if (ex.class.ancestors & accepted).size > 0
       log(ex)
       ex
@@ -65,7 +66,7 @@ module Lines; extend self
     Context.new(self, opts, &block)
   end
 
-  # A backward-compatibility logger
+  # A backward-compatibile logger
   def logger
     @logger ||= (
       require "lines/logger"
@@ -83,25 +84,15 @@ module Lines; extend self
 
   def to_outputter(out)
     return out if out.respond_to?(:output)
-
-    case out
-    when :stdout
-      out = $stdout
-    when :stderr
-      out = $stderr
-    end
+    return StreamOutputter.new(out) if out.respond_to?(:write)
 
     case out
     when IO
       StreamOutputter.new(out)
-    when :syslog, Syslog
+    when Syslog
       SyslogOutputter.new
     else
-      if out.respond_to?(:write)
-        StreamOutputter.new(out)
-      else
-        raise ArgumentError, "unknown outputter #{out.inspect}"
-      end
+      raise ArgumentError, "unknown outputter #{out.inspect}"
     end
   end
 
