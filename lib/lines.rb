@@ -34,17 +34,37 @@ require 'forwardable'
 module Lines; extend self
   def outputters; @outputters ||= []; end
 
+  # Used to select what output the lines will be put on.
+  #
+  # outputs - allows any kind of IO or Syslog
+  #
+  # Usage:
+  #
+  #     Lines.use(Syslog, $stderr)
   def use(*outputs)
     outputters.replace(outputs.map{|o| to_outputter o})
   end
 
+  # The main function. Used to record objects in the logs as lines.
+  #
+  # obj - a ruby hash
   def log(obj)
     obj = sanitize_obj(obj)
+    obj = log_ctx.merge(obj)
     outputters.each{|out| out.output(obj) }
     obj
   end
 
+  # Add data to the logs
+  def log_ctx(data=nil)
+    @log_ctx ||= {}
+    @log_ctx.merge!(data) if data
+  end
+
   # TODO: define exception format
+  #
+  # includes - an array of Exceptin classes to rescue
+  # ex - the exception to match against. by default uses the last exception.
   #
   # Usage:
   #
@@ -59,11 +79,6 @@ module Lines; extend self
       log(ex)
       ex
     end
-  end
-
-  # TODO: make these work
-  def ctx(opts = {}, &block)
-    Context.new(self, opts, &block)
   end
 
   # A backward-compatibile logger
@@ -96,31 +111,18 @@ module Lines; extend self
     end
   end
 
-  class Context
-    extend Forwardable
-
-    attr_reader :line
-    def_delegators :line, :log
-
-    def initialize(line, opts, &block)
-      @line = line
-      @opts = opts
-      yield(self) if block_given?
-    end
-
-    def log(opts); line.log(@opts.merge(opts)) end
-  end
-
   class StreamOutputter
     LF = "\n".freeze
     # stream must accept a #write(str) message
     def initialize(stream = $stderr)
       @stream = stream
+      # Is this needed ?
+      @stream.sync = true if @stream.respond_to?(:sync)
     end
 
     def output(obj)
-      str = Dumper.dump(obj)
-      stream.write str + LF
+      str = Dumper.dump(obj) + LF
+      stream.write str
     end
 
     protected
@@ -174,7 +176,7 @@ module Lines; extend self
     end
 
     def extract_pri(h)
-      pri = (h.delete(:pri) || h.delete('pri')).to_s.downcase
+      pri = h.delete(:pri).to_s.downcase
       PRI2SYSLOG[pri] || PRI2SYSLOG[:info]
     end
   end
@@ -212,23 +214,36 @@ module Lines; extend self
   #
   # This dumper has been inspired by the OkJSON gem (both formats look alike
   # after all).
-  #
-  # TODO: Numbers need to be better specified. I want to support readable
-  #       notations like 10e9 and 10'000.445
-  #
   module Dumper; extend self
     def dump(obj) #=> String
       objenc_internal(obj)
     end
 
+    # Used to introduce new ruby litterals.
     def map(klass, &rule)
       @mapping ||= {}
       @mapping[klass] = rule
     end
-    
+
+    #map(Exception) do |ex|
+    #end
+
     protected
 
     attr_reader :mapping
+
+    def objenc_internal(x)
+      x.map{|k,v| "#{keyenc(k)}=#{valenc(v)}" }.join(' ')
+    end
+
+    # FIXME: hmmm, really ? Keys with spaces ?
+    def keyenc(k)
+      case k
+      when String, Symbol then strenc(k)
+      else
+        strenc(k.inspect)
+      end
+    end
 
     def valenc(x)
       case x
@@ -241,17 +256,8 @@ module Lines; extend self
       when false      then "#f"
       when nil        then "nil"
       else
-        klass = (x.class.ancestors & mapping.keys).first
-        if klass
-          mapping[klass].call(x)
-        else
-          strenc(x.inspect)
-        end
+        litenc(x)
       end
-    end
-
-    def objenc_internal(x)
-      x.map{|k,v| keyenc(k).to_s + '=' + valenc(v).to_s }.join(' ')
     end
 
     def objenc(x)
@@ -267,19 +273,13 @@ module Lines; extend self
       end
     end
 
-    def timeenc(t)
-      t.iso8601
+    # TODO: Single-quote espace if possible
+    def strenc(s)
+      s = s.to_s
+      s = s.inspect unless is_literal?(s)
+      s
     end
 
-    def keyenc(k)
-      case k
-      when String, Symbol then strenc(k)
-      else
-        strenc(k.inspect)
-      end
-    end
-
-    # TODO: Support shorter syntaxes like 10e9 and separators like 10_000
     def numenc(n)
       case n
       when Float
@@ -289,15 +289,23 @@ module Lines; extend self
       end
     end
 
-    def is_literal?(s)
-      !s.index(/[ '"]/)
+    def litenc(x)
+      klass = (x.class.ancestors & mapping.keys).first
+      if klass
+        mapping[klass].call(x)
+      else
+        strenc(x.inspect)
+      end
     end
 
-    # TODO: Single-quote espace if possible
-    def strenc(s)
-      s = s.to_s
-      s = s.inspect unless is_literal?(s)
+    def timeenc(t)
+      t.iso8601
     end
+
+    def is_literal?(s)
+      !s.index(/[\s'"]/)
+    end
+
   end
 
   module UniqueIDs
