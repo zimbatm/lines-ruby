@@ -65,9 +65,12 @@ module Lines; extend self
     Context.new(self, opts, &block)
   end
 
-  # For backward-compatibility
+  # A backward-compatibility logger
   def logger
-    @logger ||= Logger.new(self)
+    @logger ||= (
+      require "lines/logger"
+      Logger.new(self)
+    )
   end
 
   protected
