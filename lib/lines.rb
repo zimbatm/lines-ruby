@@ -213,14 +213,13 @@ module Lines; extend self
   #
   # This dumper has been inspired by the OkJSON gem (both formats look alike
   # after all).
-  module Dumper; extend self
+  class Dumper
     def dump(obj) #=> String
       objenc_internal(obj)
     end
 
     # Used to introduce new ruby litterals.
     def map(klass, &rule)
-      @mapping ||= {}
       @mapping[klass] = rule
     end
 
@@ -230,6 +229,10 @@ module Lines; extend self
     protected
 
     attr_reader :mapping
+
+    def initialize
+      @mapping = {}
+    end
 
     def objenc_internal(x)
       x.map{|k,v| "#{keyenc(k)}=#{valenc(v)}" }.join(' ')

@@ -21,7 +21,7 @@ module Lines
       end
 
       data = { pri: pri }
-      data[:ctx] = progname if progname
+      data[:app] = progname if progname
       data[:msg] = message if message
 
       @line.log(data)
