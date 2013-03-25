@@ -1,5 +1,6 @@
 require 'date'
 require 'time'
+require 'forwardable'
 
 # Lines is an opinionated structured log format and a library
 # inspired by Slogger.
@@ -24,90 +25,109 @@ require 'time'
 #     ctx = Lines.context(encoding_id: Log.id)
 #     ctx.log({})
 #
-#     Lines.context(:foo => :bar) do
-#       Lines.log(:sadfasdf => 3)
+#     Lines.context(:foo => :bar) do |l|
+#       l.log(:sadfasdf => 3)
 #     end
-module Lines; extend self
+module Lines
   # New lines in Lines
   NL = "\n".freeze
 
-  def outputters; @outputters ||= []; end
+  extend Forwardable
+  def lines; Lines; end
+  def_delegators :lines, :log, :log_rescue, :with_context
 
-  # Used to select what output the lines will be put on.
-  #
-  # outputs - allows any kind of IO or Syslog
-  #
-  # Usage:
-  #
-  #     Lines.use(Syslog, $stderr)
-  def use(*outputs)
-    outputters.replace(outputs.map{|o| to_outputter o})
-  end
+  class << self
+    def dumper; @dumper ||= Dumper.new; end
+    def outputters; @outputters ||= []; end
 
-  # The main function. Used to record objects in the logs as lines.
-  #
-  # obj - a ruby hash
-  def log(obj)
-    obj = sanitize_obj(obj)
-    obj = log_ctx.merge(obj)
-    outputters.each{|out| out.output(obj) }
-    obj
-  end
-
-  # Add data to the logs
-  def log_ctx(data=nil)
-    @log_ctx ||= {}
-    @log_ctx.merge!(data) if data
-    @log_ctx
-  end
-
-  # TODO: define exception format
-  #
-  # includes - an array of Exceptin classes to rescue
-  # ex - the exception to match against. by default uses the last exception.
-  #
-  # Usage:
-  #
-  #   begin
-  #      raise
-  #   rescue Lines.rescue([MyLibError]) => ex
-  #      puts "This exception has been logged"
-  #   end
-  def rescue(includes=[StandardError], ex=$!)
-    return unless ex
-    if (ex.class.ancestors & accepted).size > 0
-      log(ex)
-      ex
+    # Used to select what output the lines will be put on.
+    #
+    # outputs - allows any kind of IO or Syslog
+    #
+    # Usage:
+    #
+    #     Lines.use(Syslog, $stderr)
+    def use(*outputs)
+      outputters.replace(outputs.map{|o| to_outputter o})
     end
-  end
 
-  # A backward-compatibile logger
-  def logger
-    @logger ||= (
-      require "lines/logger"
-      Logger.new(self)
-    )
-  end
+    # The main function. Used to record objects in the logs as lines.
+    #
+    # obj - a ruby hash
+    def log(obj)
+      obj = sanitize_obj(obj)
+      #obj = context.merge(obj)
+      outputters.each{|out| out.output(dumper, obj) }
+      obj
+    end
 
-  protected
+    attr_accessor :global_context
 
-  def sanitize_obj(obj)
-    obj = obj.to_h if obj.respond_to?(:to_h)
-    obj = {msg: obj.inspect} unless obj.kind_of?(Hash)
-    obj
-  end
+    # Add data to the logs
+    def with_context(data={})
+      new_context = Context.new global_context.merge(data)
+      yield new_context if block_given?
+      new_context
+    end
 
-  def to_outputter(out)
-    return out if out.respond_to?(:output)
-    return StreamOutputter.new(out) if out.respond_to?(:write)
+    class Context
+      include Lines
 
-    case out
-    when IO
-      StreamOutputter.new(out)
-    when Syslog
-      SyslogOutputter.new
-    else
-      raise ArgumentError, "unknown outputter #{out.inspect}"
+      attr_reader :context
+
+      def initialize(data)
+        @context = data
+      end
+    end
+
+    # TODO: define exception format
+    #
+    # includes - an array of Exceptin classes to rescue
+    # ex - the exception to match against. by default uses the last exception.
+    #
+    # Usage:
+    #
+    #   begin
+    #      raise
+    #   rescue Lines.log_rescue([MyLibError]) => ex
+    #      puts "This exception has been logged"
+    #   end
+    def log_rescue(includes=[StandardError], ex=$!)
+      return unless ex
+      if (ex.class.ancestors & accepted).size > 0
+        log(ex)
+        ex
+      end
+    end
+
+    # A backward-compatibile logger
+    def logger
+      @logger ||= (
+        require "lines/logger"
+        Logger.new(self)
+      )
+    end
+
+    protected
+
+    def sanitize_obj(obj)
+      obj = obj.to_h if obj.respond_to?(:to_h)
+      obj = {msg: obj} unless obj.kind_of?(Hash)
+      obj
+    end
+
+    def to_outputter(out)
+      return out if out.respond_to?(:output)
+      return StreamOutputter.new(out) if out.respond_to?(:write)
+
+      case out
+      when IO
+        StreamOutputter.new(out)
+      when Syslog
+        SyslogOutputter.new
+      else
+        raise ArgumentError, "unknown outputter #{out.inspect}"
+      end
     end
   end
 
@@ -119,8 +139,8 @@ module Lines; extend self
       @stream.sync = true if @stream.respond_to?(:sync)
     end
 
-    def output(obj)
-      str = Dumper.dump(obj) + NL
+    def output(dumper, obj)
+      str = dumper.dump(obj) + NL
       stream.write str
     end
 
@@ -148,14 +168,14 @@ module Lines; extend self
       prepare_syslog
     end
 
-    def output(obj)
+    def output(dumper, obj)
       obj = obj.dup
       obj.delete(:pid) # It's going to be part of the message
       obj.delete(:at)  # Also part of the message
-      obj.delete(:app) # Also, but make sure syslog is configured right
+      obj.delete(:app) # And again
 
       level = extract_pri(obj)
-      str = Dumper.dump(obj)
+      str = dumper.dump(obj)
 
       syslog.log(level, str)
     end
@@ -223,9 +243,6 @@ module Lines; extend self
       @mapping[klass] = rule
     end
 
-    #map(Exception) do |ex|
-    #end
-
     protected
 
     attr_reader :mapping
@@ -238,7 +255,6 @@ module Lines; extend self
       x.map{|k,v| "#{keyenc(k)}=#{valenc(v)}" }.join(' ')
     end
 
-    # FIXME: hmmm, really ? Keys with spaces ?
     def keyenc(k)
       case k
       when String, Symbol then strenc(k)
@@ -298,6 +314,9 @@ module Lines; extend self
       else
         strenc(x.inspect)
       end
+    rescue
+      klass = (class << x; self; end).ancestors.first
+      strenc("#<#{klass}:0x#{x.__id__.to_s(16)}>")
     end
 
     def timeenc(t)
@@ -315,14 +334,14 @@ module Lines; extend self
     # A small utility to generate unique IDs that are as short as possible.
     #
     # It's useful to link contextes together
-    def id(collision_chance=10e9, over_x_messages=10e3)
+    #
+    # See http://preshing.com/20110504/hash-collision-probabilities
+    def id(collision_chance=1.0/10e9, over_x_messages=10e3)
       # Assuming that the distribution is perfectly random
       # how many bits do we need so that the chance of collision over_x_messages
-      # is higher thant collision_chance ?
-
-      # FIXME: This algo is wrong. Use http://preshing.com/20110504/hash-collision-probabilities
-      bits = Math.log2(collision_chance * over_x_messages)
-      num_bytes = (bits / 8).ceil
+      # is lower thant collision_chance ? 
+      number_of_possible_numbers = (over_x_messages ** 2) / (2 * collision_chance)
+      num_bytes = (Math.log2(number_of_possible_numbers) / 8).ceil
       SecureRandom.urlsafe_base64(num_bytes)
     end
   end

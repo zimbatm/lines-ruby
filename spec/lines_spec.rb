@@ -13,17 +13,30 @@ describe Lines do
     Lines.log(foo: 'bar')
     expect(output).to eq('foo=bar' + Lines::NL)
   end
+
+  it "works with anything" do
+    Lines.log("anything")
+    expect(output).to eq('msg=anything' + Lines::NL)
+  end
 end
 
 describe Lines::Dumper do
-  include Lines::Dumper
+  subject { Lines::Dumper.new }
 
   it do
-    expect(dump foo: 'bar').to eq('foo=bar')
+    expect(subject.dump foo: 'bar').to eq('foo=bar')
   end
 
   it "dumps empty strings correclty" do
-    expect(dump foo: '').to eq('foo=')
+    expect(subject.dump foo: '').to eq('foo=')
+  end
+
+  it "can dump a basicobject" do
+    expect(subject.dump foo: BasicObject.new).to match(/foo=#<BasicObject:0x[0-9a-f]+>/)
+  end
+
+  it "can dump IO objects" do
+    expect(subject.dump foo: File.open(__FILE__)).to match(/foo=#<File:[^>]+>/)
   end
 end
 

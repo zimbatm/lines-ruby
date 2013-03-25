@@ -12,7 +12,7 @@ module Lines
   end
 
   describe Parser do
-    let(:parser) { Line::Parser.new }
+    let(:parser) { Lines::Parser.new }
 
     context "value parsing" do
       let(:value_parser) { parser.value }
