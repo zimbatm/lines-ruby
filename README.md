@@ -13,8 +13,6 @@ Add context to the library
 
 Check performances
 
-BasicObject dumping
-
 Exception formatting
 
 Fix the UniqueID algorithm

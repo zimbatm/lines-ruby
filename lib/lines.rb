@@ -54,8 +54,8 @@ module Lines
     # The main function. Used to record objects in the logs as lines.
     #
     # obj - a ruby hash
-    def log(obj)
-      obj = sanitize_obj(obj)
+    def log(obj, args={})
+      obj = sanitize_obj(obj, args)
       #obj = context.merge(obj)
       outputters.each{|out| out.output(dumper, obj) }
       obj
@@ -80,26 +80,6 @@ module Lines
       end
     end
 
-    # TODO: define exception format
-    #
-    # includes - an array of Exceptin classes to rescue
-    # ex - the exception to match against. by default uses the last exception.
-    #
-    # Usage:
-    #
-    #   begin
-    #      raise
-    #   rescue Lines.log_rescue([MyLibError]) => ex
-    #      puts "This exception has been logged"
-    #   end
-    def log_rescue(includes=[StandardError], ex=$!)
-      return unless ex
-      if (ex.class.ancestors & accepted).size > 0
-        log(ex)
-        ex
-      end
-    end
-
     # A backward-compatibile logger
     def logger
       @logger ||= (
@@ -110,10 +90,21 @@ module Lines
 
     protected
 
-    def sanitize_obj(obj)
-      obj = obj.to_h if obj.respond_to?(:to_h)
-      obj = {msg: obj} unless obj.kind_of?(Hash)
-      obj
+    def sanitize_obj(obj, args={})
+      if obj.kind_of?(Exception)
+        ex = obj
+        obj = {ex: ex.class, msg: ex.to_s}
+        if ex.respond_to?(:backtrace) && ex.backtrace
+          obj[:backtrace] = ex.backtrace
+        end
+      elsif !obj.kind_of?(Hash)
+        if obj.respond_to?(:to_h)
+          obj = obj.to_h
+        else
+          obj = {msg: obj}
+        end
+      end
+      obj.merge(args)
     end
 
     def to_outputter(out)
@@ -265,14 +256,14 @@ module Lines
 
     def valenc(x)
       case x
-      when Hash       then objenc(x)
-      when Array      then arrenc(x)
-      when String     then strenc(x)
-      when Numeric    then numenc(x)
-      when Time, Date then timeenc(x)
-      when true       then "#t"
-      when false      then "#f"
-      when nil        then "nil"
+      when Hash           then objenc(x)
+      when Array          then arrenc(x)
+      when String, Symbol then strenc(x)
+      when Numeric        then numenc(x)
+      when Time, Date     then timeenc(x)
+      when true           then "#t"
+      when false          then "#f"
+      when nil            then "nil"
       else
         litenc(x)
       end
@@ -299,12 +290,12 @@ module Lines
     end
 
     def numenc(n)
-      case n
-      when Float
-        "%.3f" % n
-      else
+      #case n
+      # when Float
+      #   "%.3f" % n
+      #else
         n.to_s
-      end
+      #end
     end
 
     def litenc(x)
