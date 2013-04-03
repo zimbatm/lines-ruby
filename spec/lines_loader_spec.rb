@@ -8,7 +8,6 @@ module Lines
     it "can load stuff" do
       expect(Loader.load 'foo=bar').to eq("foo" => "bar")
     end
-
   end
 
   describe Parser do

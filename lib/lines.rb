@@ -32,13 +32,13 @@ module Lines
   # New lines in Lines
   NL = "\n".freeze
 
-  extend Forwardable
-  def lines; Lines; end
-  def_delegators :lines, :log, :log_rescue, :with_context
+  @global = {}
+  @outputters = []
 
   class << self
-    def dumper; @dumper ||= Dumper.new; end
-    def outputters; @outputters ||= []; end
+    def dumper; @dumper ||= Dumper.new end
+    attr_reader :global
+    attr_reader :outputters
 
     # Used to select what output the lines will be put on.
     #
@@ -54,29 +54,32 @@ module Lines
     # The main function. Used to record objects in the logs as lines.
     #
     # obj - a ruby hash
+    # args -
     def log(obj, args={})
       obj = sanitize_obj(obj, args)
-      #obj = context.merge(obj)
+      obj = global.merge(obj)
       outputters.each{|out| out.output(dumper, obj) }
       obj
     end
 
-    attr_accessor :global_context
-
     # Add data to the logs
-    def with_context(data={})
-      new_context = Context.new global_context.merge(data)
+    #
+    # data - a ruby hash
+    def context(data={})
+      new_context = Context.new global.merge(data)
       yield new_context if block_given?
       new_context
     end
 
     class Context
-      include Lines
-
-      attr_reader :context
+      attr_reader :data
 
       def initialize(data)
-        @context = data
+        @data = data
+      end
+
+      def log(obj, args={})
+        Lines.log(obj, args.merge(data))
       end
     end
 

@@ -35,6 +35,25 @@ describe Lines do
     Lines.log("anything")
     expect(output).to eq('msg=anything' + Lines::NL)
   end
+
+  it "has global context" do
+    Lines.global["app"] = :self
+    Lines.log({})
+    Lines.global.replace({})
+    expect(output).to eq('app=self' + Lines::NL)
+  end
+
+  it "has contextes" do
+    Lines.context(foo: "bar").log(a: 'b')
+    expect(output).to eq('a=b foo=bar' + Lines::NL)
+  end
+
+  it "has contextes with blocks" do
+    Lines.context(foo: "bar") do |ctx|
+      ctx.log(a: 'b')
+    end
+    expect(output).to eq('a=b foo=bar' + Lines::NL)
+  end
 end
 
 describe Lines::Dumper do
@@ -91,7 +110,6 @@ describe Lines::Dumper do
     expect_dump(foo: [3, :ms]).to eq('foo=3ms')
     expect_dump(foo: [54.2, 's']).to eq('foo=54.2s')
   end
-
 end
 
 describe Lines::UniqueIDs do

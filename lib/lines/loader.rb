@@ -15,7 +15,7 @@ module Lines
       transformer = Transformer.new
 
       tree = parser.parse(s)
-      puts; p tree; puts
+      #puts; p tree; puts
       transformer.apply(tree)
     rescue Parslet::ParseFailed => ex
       # Mark as being part of the Lines library
