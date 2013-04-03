@@ -54,6 +54,12 @@ describe Lines do
     end
     expect(output).to eq('a=b foo=bar' + Lines::NL)
   end
+
+  it "has a backward-compatible logger" do
+    l = Lines.logger
+    l.info("hi")
+    expect(output).to eq('pri=info msg=hi' + Lines::NL)
+  end
 end
 
 describe Lines::Dumper do

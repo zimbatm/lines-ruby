@@ -10,9 +10,11 @@ module Lines
       4 => :fatal,
       5 => :unknown,
     }
+
     def initialize(line)
       @line = line
     end
+
     def log(severity, message = nil, progname = nil, &block)
       pri = LEVELS[severity] || severity
       if block_given?
@@ -28,13 +30,13 @@ module Lines
     end
 
     LEVELS.values.each do |level|
-      define_method(:level) do |message=nil, &block|
+      define_method(level) do |message=nil, &block|
         log(level, message, &block)
       end
     end
 
-    alias info <<
-    alias info unknown
+    alias << info
+    alias unknown info
 
     def noop(*a); true end
     %w[add
@@ -53,7 +55,7 @@ module Lines
       sev_threshold
       sev_threshold=
     ].each do |op|
-      alias_method(:noop, op)
+      alias_method(op, :noop)
     end
   end
 end
