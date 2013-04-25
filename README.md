@@ -16,3 +16,9 @@ Check performances
 Exception formatting
 
 Fix the UniqueID algorithm
+
+See also
+--------
+
+ * Scrolls : https://github.com/asenchi/scrolls
+ * Lograge : https://github.com/roidrage/lograge
