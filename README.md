@@ -6,17 +6,6 @@ An oppinionated logging library that implement the
 
 Status: work in progress
 
-TODO
-====
-
-Add context to the library
-
-Check performances
-
-Exception formatting
-
-Fix the UniqueID algorithm
-
 See also
 --------
 
