@@ -290,7 +290,10 @@ module Lines
       s = s.to_s
       unless is_literal?(s)
         s = s.inspect
-        s[0] = s[-1] = "'" unless s[1..-2].include?("'")
+        unless s[1..-2].include?("'")
+          s[0] = s[-1] = "'"
+          s.gsub!('\"', '"')
+        end
       end
       s
     end

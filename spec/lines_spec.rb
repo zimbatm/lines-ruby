@@ -82,6 +82,14 @@ describe Lines::Dumper do
     expect_dump(foo: '').to eq('foo=')
   end
 
+  it "dumps a string with spaces surrounded by single quotes" do
+    expect_dump(foo: 'some" thing').to eq("foo='some\" thing'")
+  end
+
+  it "dumps a string with spaces and a single quote sourrounded with double quotes" do
+    expect_dump(foo: "foo ' bar").to eq("foo=\"foo ' bar\"")
+  end
+
   it "can dump a basicobject" do
     expect_dump(foo: BasicObject.new).to match(/foo=#<BasicObject:0x[0-9a-f]+>/)
   end
