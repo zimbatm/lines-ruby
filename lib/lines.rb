@@ -288,7 +288,10 @@ module Lines
     # TODO: Single-quote espace if possible
     def strenc(s)
       s = s.to_s
-      s = s.inspect unless is_literal?(s)
+      unless is_literal?(s)
+        s = s.inspect
+        s[0] = s[-1] = "'" unless s[1..-2].include?("'")
+      end
       s
     end
 

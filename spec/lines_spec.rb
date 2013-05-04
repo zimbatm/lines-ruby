@@ -16,12 +16,12 @@ describe Lines do
 
   it "supports a first msg argument" do
     Lines.log("this user is annoying", user: 'bob')
-    expect(output).to eq('msg="this user is annoying" user=bob' + Lines::NL)
+    expect(output).to eq("msg='this user is annoying' user=bob" + Lines::NL)
   end
 
   it "logs exceptions" do
     Lines.log(StandardError.new("error time!"), user: 'bob')
-    expect(output).to eq('ex=StandardError msg="error time!" user=bob' + Lines::NL)
+    expect(output).to eq("ex=StandardError msg='error time!' user=bob" + Lines::NL)
   end
 
   it "logs exception backtraces when available" do
@@ -97,7 +97,7 @@ describe Lines::Dumper do
 
   it "dumps symbols as strings" do
     expect_dump(foo: :some_symbol).to eq('foo=some_symbol')
-    expect_dump(foo: :"some symbol").to eq('foo="some symbol"')
+    expect_dump(foo: :"some symbol").to eq("foo='some symbol'")
   end
 
   it "dumps numbers appropriately" do
