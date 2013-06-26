@@ -90,6 +90,12 @@ describe Lines do
         'count=2 msg=test2' + Lines::NL
       )
     end
+
+    it "doesn't fail if a proc has an exception" do
+      Lines.global[:X] = proc{ fail "error" }
+      Lines.log 'test'
+      expect(output).to eq("X='#<RuntimeError: error>' msg=test" + Lines::NL)
+    end
   end
 end
 

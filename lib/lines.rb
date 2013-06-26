@@ -103,7 +103,7 @@ module Lines
       args = ensure_hash!(args)
 
       g = global.inject({}) do |h, (k,v)|
-        h[k] = v.respond_to?(:call) ? v.call : v
+        h[k] = (v.respond_to?(:call) ? v.call : v) rescue $!
         h
       end
 
