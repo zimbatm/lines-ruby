@@ -331,7 +331,7 @@ module Lines
     end
 
     def timeenc(t)
-      t.iso8601
+      t.utc.iso8601
     end
 
     def is_literal?(s)

@@ -95,12 +95,12 @@ describe Lines::Dumper do
   end
 
   it "can dump IO objects" do
-    expect_dump(foo: File.open(__FILE__)).to match(/foo=#<File:[^>]+>/)
+    expect_dump(foo: File.open(__FILE__)).to match(/foo='?#<File:[^>]+>'?/)
     expect_dump(foo: STDOUT).to eq("foo=#<IO:<STDOUT>>")
   end
 
   it "dumps time as ISO zulu format" do
-    expect_dump(foo: Time.at(1337)).to eq('foo=1970-01-01T01:22:17+01:00')
+    expect_dump(foo: Time.at(1337)).to eq('foo=1970-01-01T00:22:17Z')
   end
 
   it "dumps symbols as strings" do
