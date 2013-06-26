@@ -6,59 +6,90 @@ describe Lines do
   let(:outputter) { StringIO.new }
   let(:output) { outputter.string }
   before do
+    Lines.global.replace({})
     Lines.use(outputter)
   end
 
-  it "logs stuff" do
-    Lines.log(foo: 'bar')
-    expect(output).to eq('foo=bar' + Lines::NL)
-  end
-
-  it "supports a first msg argument" do
-    Lines.log("this user is annoying", user: 'bob')
-    expect(output).to eq("msg='this user is annoying' user=bob" + Lines::NL)
-  end
-
-  it "logs exceptions" do
-    Lines.log(StandardError.new("error time!"), user: 'bob')
-    expect(output).to eq("ex=StandardError msg='error time!' user=bob" + Lines::NL)
-  end
-
-  it "logs exception backtraces when available" do
-    ex = (raise "foo" rescue $!)
-    #expect(ex).not_to eq(nil)
-    Lines.log(ex)
-    expect(output).to match(/ex=RuntimeError msg=foo backtrace=\[[^\]]+\]/)
-  end
-
-  it "works with anything" do
-    Lines.log("anything")
-    expect(output).to eq('msg=anything' + Lines::NL)
-  end
-
-  it "has global context" do
-    Lines.global["app"] = :self
-    Lines.log({})
-    Lines.global.replace({})
-    expect(output).to eq('app=self' + Lines::NL)
-  end
-
-  it "has contextes" do
-    Lines.context(foo: "bar").log(a: 'b')
-    expect(output).to eq('a=b foo=bar' + Lines::NL)
-  end
-
-  it "has contextes with blocks" do
-    Lines.context(foo: "bar") do |ctx|
-      ctx.log(a: 'b')
+  context ".log" do
+    it "logs stuff" do
+      Lines.log(foo: 'bar')
+      expect(output).to eq('foo=bar' + Lines::NL)
     end
-    expect(output).to eq('a=b foo=bar' + Lines::NL)
+
+    it "supports a first msg argument" do
+      Lines.log("this user is annoying", user: 'bob')
+      expect(output).to eq("msg='this user is annoying' user=bob" + Lines::NL)
+    end
+
+    it "logs exceptions" do
+      Lines.log(StandardError.new("error time!"), user: 'bob')
+      expect(output).to eq("ex=StandardError msg='error time!' user=bob" + Lines::NL)
+    end
+
+    it "logs exception backtraces when available" do
+      ex = (raise "foo" rescue $!)
+      #expect(ex).not_to eq(nil)
+      Lines.log(ex)
+      expect(output).to match(/ex=RuntimeError msg=foo backtrace=\[[^\]]+\]/)
+    end
+
+    it "works with anything" do
+      Lines.log("anything1", "anything2")
+      expect(output).to eq('msg=anything2' + Lines::NL)
+    end
+
+    it "doesn't convert nil args to msg" do
+      Lines.log("anything", nil)
+      expect(output).to eq('msg=anything' + Lines::NL)
+    end
   end
 
-  it "has a backward-compatible logger" do
-    l = Lines.logger
-    l.info("hi")
-    expect(output).to eq('pri=info msg=hi' + Lines::NL)
+  context ".context" do
+    it "has contextes" do
+      Lines.context(foo: "bar").log(a: 'b')
+      expect(output).to eq('a=b foo=bar' + Lines::NL)
+    end
+
+    it "has contextes with blocks" do
+      Lines.context(foo: "bar") do |ctx|
+        ctx.log(a: 'b')
+      end
+      expect(output).to eq('a=b foo=bar' + Lines::NL)
+    end
+
+    it "mixes everything" do
+      Lines.global[:app] = :self
+      ctx = Lines.context(foo: "bar")
+      ctx.log('msg', ahoi: true)
+      expect(output).to eq('app=self msg=msg ahoi=#t foo=bar' + Lines::NL)
+    end
+  end
+
+  context ".logger" do
+    it "is provided for backward-compatibility" do
+      l = Lines.logger
+      l.info("hi")
+      expect(output).to eq('pri=info msg=hi' + Lines::NL)
+    end
+  end
+
+  context ".global" do
+    it "prepends data to the line" do
+      Lines.global["app"] = :self
+      Lines.log 'hey'
+      expect(output).to eq('app=self msg=hey' + Lines::NL)
+    end
+
+    it "resolves procs dynamically" do
+      count = 0
+      Lines.global[:count] = proc{ count += 1 }
+      Lines.log 'test1'
+      Lines.log 'test2'
+      expect(output).to eq(
+        'count=1 msg=test1' + Lines::NL +
+        'count=2 msg=test2' + Lines::NL
+      )
+    end
   end
 end
 

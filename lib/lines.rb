@@ -56,8 +56,7 @@ module Lines
     # obj - a ruby hash
     # args -
     def log(obj, args={})
-      obj = sanitize_obj(obj, args)
-      obj = global.merge(obj)
+      obj = prepare_obj(obj, args)
       outputters.each{|out| out.output(dumper, obj) }
       obj
     end
@@ -65,25 +64,15 @@ module Lines
     # Add data to the logs
     #
     # data - a ruby hash
+    #
+    # return a Context instance
     def context(data={})
-      new_context = Context.new global.merge(data)
+      new_context = Context.new ensure_hash!(data)
       yield new_context if block_given?
       new_context
     end
 
-    class Context
-      attr_reader :data
-
-      def initialize(data)
-        @data = data
-      end
-
-      def log(obj, args={})
-        Lines.log(obj, args.merge(data))
-      end
-    end
-
-    # A backward-compatibile logger
+    # Returns a backward-compatibile logger
     def logger
       @logger ||= (
         require "lines/logger"
@@ -91,23 +80,34 @@ module Lines
       )
     end
 
+    def ensure_hash!(obj) # :nodoc:
+      return {} unless obj
+      return obj if obj.kind_of?(Hash)
+      return obj.to_h if obj.respond_to?(:to_h)
+      obj = {msg: obj}
+    end
+
     protected
 
-    def sanitize_obj(obj, args={})
+    def prepare_obj(obj, args={})
       if obj.kind_of?(Exception)
         ex = obj
         obj = {ex: ex.class, msg: ex.to_s}
         if ex.respond_to?(:backtrace) && ex.backtrace
           obj[:backtrace] = ex.backtrace
         end
-      elsif !obj.kind_of?(Hash)
-        if obj.respond_to?(:to_h)
-          obj = obj.to_h
-        else
-          obj = {msg: obj}
-        end
+      else
+        obj = ensure_hash!(obj)
       end
-      obj.merge(args)
+
+      args = ensure_hash!(args)
+
+      g = global.inject({}) do |h, (k,v)|
+        h[k] = v.respond_to?(:call) ? v.call : v
+        h
+      end
+
+      g.merge(obj.merge(args))
     end
 
     def to_outputter(out)
@@ -122,6 +122,19 @@ module Lines
       else
         raise ArgumentError, "unknown outputter #{out.inspect}"
       end
+    end
+  end
+
+  # Wrapper object that holds a given context. Emitted by Lines.with
+  class Context
+    attr_reader :data
+
+    def initialize(data)
+      @data = data
+    end
+
+    def log(obj, args={})
+      Lines.log obj, Lines.ensure_hash!(args).merge(data)
     end
   end
 
@@ -157,9 +170,8 @@ module Lines
     }
 
     def initialize(syslog = Syslog, app_name=nil)
-      @app_name = app_name
       @syslog = syslog
-      prepare_syslog
+      prepare_syslog(app_name)
     end
 
     def output(dumper, obj)
@@ -176,10 +188,9 @@ module Lines
 
     protected
 
-    attr_reader :app_name
     attr_reader :syslog
 
-    def prepare_syslog
+    def prepare_syslog(app_name)
       unless syslog.opened?
         # Did you know ? app_name is detected by syslog if nil
         syslog.open(app_name,
