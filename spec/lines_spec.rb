@@ -124,6 +124,12 @@ describe Lines::Dumper do
     expect_dump(foo: [3, :ms]).to eq('foo=3ms')
     expect_dump(foo: [54.2, 's']).to eq('foo=54.2s')
   end
+
+  it "knows how to handle circular dependencies" do
+    x = {}
+    x[:x] = x
+    expect_dump(x).to eq('x={x={x={...}}}')
+  end
 end
 
 describe Lines::UniqueIDs do

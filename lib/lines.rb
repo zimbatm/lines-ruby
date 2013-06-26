@@ -237,16 +237,24 @@ module Lines
       @mapping[klass] = rule
     end
 
+    attr_accessor :max_depth
+
     protected
 
     attr_reader :mapping
 
     def initialize
       @mapping = {}
+      @max_depth = 3
     end
 
-    def objenc_internal(x)
-      x.map{|k,v| "#{keyenc(k)}=#{valenc(v)}" }.join(' ')
+    def objenc_internal(x, depth=0)
+      depth += 1
+      if depth > max_depth
+        '...'
+      else
+        x.map{|k,v| "#{keyenc(k)}=#{valenc(v, depth)}" }.join(' ')
+      end
     end
 
     def keyenc(k)
@@ -257,10 +265,10 @@ module Lines
       end
     end
 
-    def valenc(x)
+    def valenc(x, depth)
       case x
-      when Hash           then objenc(x)
-      when Array          then arrenc(x)
+      when Hash           then objenc(x, depth)
+      when Array          then arrenc(x, depth)
       when String, Symbol then strenc(x)
       when Numeric        then numenc(x)
       when Time, Date     then timeenc(x)
@@ -272,16 +280,19 @@ module Lines
       end
     end
 
-    def objenc(x)
-      '{' + objenc_internal(x) + '}'
+    def objenc(x, depth)
+      '{' + objenc_internal(x, depth) + '}'
     end
 
-    def arrenc(a)
+    def arrenc(a, depth)
+      depth += 1
       # num + unit. Eg: 3ms
       if a.size == 2 && a.first.kind_of?(Numeric) && is_literal?(a.last.to_s)
         numenc(a.first) + strenc(a.last)
+      elsif depth > max_depth
+        '[...]'
       else
-        '[' + a.map{|x| valenc(x)}.join(' ') + ']'
+        '[' + a.map{|x| valenc(x, depth)}.join(' ') + ']'
       end
     end
 
