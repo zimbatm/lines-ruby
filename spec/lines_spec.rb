@@ -96,7 +96,7 @@ describe Lines::Dumper do
 
   it "can dump IO objects" do
     expect_dump(foo: File.open(__FILE__)).to match(/foo='?#<File:[^>]+>'?/)
-    expect_dump(foo: STDOUT).to eq("foo=#<IO:<STDOUT>>")
+    expect_dump(foo: STDOUT).to match(/^foo=(?:#<IO:<STDOUT>>|'#<IO:fd 1>')$/)
   end
 
   it "dumps time as ISO zulu format" do
