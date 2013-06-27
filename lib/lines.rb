@@ -112,16 +112,12 @@ module Lines
 
     def to_outputter(out)
       return out if out.respond_to?(:output)
-      return StreamOutputter.new(out) if out.respond_to?(:write)
 
-      case out
-      when IO
-        StreamOutputter.new(out)
-      when Syslog
-        SyslogOutputter.new
-      else
-        raise ArgumentError, "unknown outputter #{out.inspect}"
+      [StreamOutputter, SyslogOutputter].each do |outputter|
+        return outputter.new(out) if outputter.supports?(out)
       end
+
+      raise ArgumentError, "unknown outputter #{out.inspect}"
     end
   end
 
@@ -139,6 +135,10 @@ module Lines
   end
 
   class StreamOutputter
+    def self.supports?(out)
+      out.respond_to?(:write)
+    end
+
     # stream must accept a #write(str) message
     def initialize(stream = $stderr)
       @stream = stream
@@ -168,6 +168,10 @@ module Lines
       crit:     Syslog::LOG_CRIT,
       critical: Syslog::LOG_CRIT,
     }
+
+    def self.supports?(out)
+      out == ::Syslog
+    end
 
     def initialize(syslog = Syslog, app_name=nil)
       @syslog = syslog
