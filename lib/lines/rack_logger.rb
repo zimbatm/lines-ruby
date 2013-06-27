@@ -6,6 +6,7 @@ module Lines
     # In development mode the common logger is always inserted
     def self.silence_common_logger!
       Rack::CommonLogger.module_eval("def call(env); @app.call(env); end")
+      self
     end
 
     def initialize(app)
