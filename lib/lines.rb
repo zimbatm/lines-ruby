@@ -48,7 +48,7 @@ module Lines
     #
     #     Lines.use(Syslog, $stderr)
     def use(*outputs)
-      outputters.replace(outputs.map{|o| to_outputter o})
+      outputters.replace(outputs.flatten.map{|o| to_outputter o})
     end
 
     # The main function. Used to record objects in the logs as lines.
