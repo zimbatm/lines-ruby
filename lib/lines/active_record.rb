@@ -29,8 +29,9 @@ module Lines
       Lines.log(name: event.payload[:name], line: event.payload[:line])
     end
 
-    def logger; true; end
+    def logger; Lines.logger; end
   end
 end
 
+ActiveRecord::Base.logger = Lines.logger
 Lines::ActiveRecordSubscriber.attach_to :active_record
