@@ -113,15 +113,8 @@ module Lines
     def to_outputter(out)
       return out if out.respond_to?(:output)
       return StreamOutputter.new(out) if out.respond_to?(:write)
-
-      case out
-      when IO
-        StreamOutputter.new(out)
-      when Syslog
-        SyslogOutputter.new
-      else
-        raise ArgumentError, "unknown outputter #{out.inspect}"
-      end
+      return SyslogOutputter.new if out == ::Syslog
+      raise ArgumentError, "unknown outputter #{out.inspect}"
     end
   end
 
