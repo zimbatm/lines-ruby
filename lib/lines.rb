@@ -176,6 +176,9 @@ module Lines
       level = extract_pri(obj)
       str = dumper.dump(obj)
 
+      # Escape printf formatting
+      str.gsub!('%', '%%')
+
       syslog.log(level, str)
     end
 
