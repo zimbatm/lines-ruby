@@ -6,7 +6,7 @@ module Lines
     def sql(event)
       payload = event.payload
 
-      return if payload[:name] == "SCHEMA"
+      return if payload[:name] == 'SCHEMA'
 
       args = {}
 

@@ -5,7 +5,7 @@ module Lines
   class RackLogger < Rack::CommonLogger
     # In development mode the common logger is always inserted
     def self.silence_common_logger!
-      Rack::CommonLogger.module_eval("def call(env); @app.call(env); end")
+      Rack::CommonLogger.module_eval('def call(env); @app.call(env); end')
       self
     end
 
@@ -25,11 +25,11 @@ module Lines
 
     def log(env, status, header, began_at)
       Lines.log(
-        remote_addr: env['HTTP_X_FORWARDED_FOR'] || env["REMOTE_ADDR"],
+        remote_addr: env['HTTP_X_FORWARDED_FOR'] || env['REMOTE_ADDR'],
         remote_user: env['REMOTE_USER'] || '',
         method: env['REQUEST_METHOD'],
         path: env['PATH_INFO'],
-        query:  env["QUERY_STRING"],
+        query:  env['QUERY_STRING'],
         status: status.to_s[0..3],
         length: extract_content_length(header),
         elapsed: [Time.now - began_at, 's'],

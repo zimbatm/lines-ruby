@@ -75,7 +75,7 @@ module Lines
     # Returns a backward-compatibile logger
     def logger
       @logger ||= (
-        require "lines/logger"
+        require 'lines/logger'
         Logger.new(self)
       )
     end
@@ -276,9 +276,9 @@ module Lines
       when String, Symbol then strenc(x)
       when Numeric        then numenc(x)
       when Time, Date     then timeenc(x)
-      when true           then "#t"
-      when false          then "#f"
-      when nil            then "nil"
+      when true           then '#t'
+      when false          then '#f'
+      when nil            then 'nil'
       else
         litenc(x)
       end
