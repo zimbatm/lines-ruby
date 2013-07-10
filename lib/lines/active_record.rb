@@ -33,5 +33,20 @@ module Lines
   end
 end
 
+# Remove the default ActiveRecord::LogSubscriber to avoid double outputs
+ActiveSupport::LogSubscriber.log_subscribers.each do |subscriber|
+  if subscriber.is_a?(ActiveRecord::LogSubscriber)
+    component = :active_record
+    events = subscriber.public_methods(false).reject{ |method| method.to_s == 'call' }
+    events.each do |event|
+      ActiveSupport::Notifications.notifier.listeners_for("#{event}.#{component}").each do |listener|
+        if listener.instance_variable_get('@delegate') == subscriber
+          ActiveSupport::Notifications.unsubscribe listener
+        end
+      end
+    end
+  end
+end
 ActiveRecord::Base.logger = Lines.logger
 Lines::ActiveRecordSubscriber.attach_to :active_record
+
