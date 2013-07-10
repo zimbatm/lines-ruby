@@ -3,10 +3,22 @@ require 'lines'
 
 module Lines
   class ActiveRecordSubscriber < ActiveSupport::LogSubscriber
+    def render_bind(column, value)
+      if column
+        if column.binary?
+          value = "<#{value.bytesize} bytes of binary data>"
+        end
+
+        [column.name, value]
+      else
+        [nil, value]
+      end
+    end
+
     def sql(event)
       payload = event.payload
 
-      return if payload[:name] == 'SCHEMA'
+      return if payload[:name] == 'SCHEMA' || payload[:name] == 'EXPLAIN'
 
       args = {}
 
@@ -15,12 +27,13 @@ module Lines
 
       if payload[:binds] && payload[:binds].any?
         args[:binds] = payload[:binds].inject({}) do |hash,(col, v)|
-          hash[col.name] = v
+          k, v = render_bind(col, v)
+          hash[k] = v
           hash
         end
       end
 
-      args[:elapsed] = [event.duration, 's']
+      args[:elapsed] = [event.duration.round(1), 'ms']
 
       Lines.log(args)
     end
