@@ -162,12 +162,13 @@ module Lines
       'critical' => Syslog::LOG_CRIT,
     }
 
-    def initialize(syslog = Syslog, app_name=nil)
+    def initialize(syslog = Syslog)
       @syslog = syslog
-      prepare_syslog(app_name)
     end
 
     def output(dumper, obj)
+      prepare_syslog obj[:app]
+
       obj = obj.dup
       obj.delete(:pid) # It's going to be part of the message
       obj.delete(:at)  # Also part of the message
@@ -176,20 +177,17 @@ module Lines
       level = extract_pri(obj)
       str = dumper.dump(obj)
 
-      syslog.log(level, "%s", str)
+      @syslog.log(level, "%s", str)
     end
 
     protected
 
-    attr_reader :syslog
-
     def prepare_syslog(app_name)
-      unless syslog.opened?
-        # Did you know ? app_name is detected by syslog if nil
-        syslog.open(app_name,
-                    Syslog::LOG_PID | Syslog::LOG_CONS | Syslog::LOG_NDELAY,
-                    Syslog::LOG_USER)
-      end
+      return if @syslog.opened?
+      app_name ||= File.basename($0)
+      @syslog.open(app_name,
+                  Syslog::LOG_PID | Syslog::LOG_CONS | Syslog::LOG_NDELAY,
+                  Syslog::LOG_USER)
     end
 
     def extract_pri(h)
