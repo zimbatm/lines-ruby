@@ -187,7 +187,7 @@ module Lines
       unless syslog.opened?
         # Did you know ? app_name is detected by syslog if nil
         syslog.open(app_name,
-                    Syslog::LOG_PID & Syslog::LOG_CONS & Syslog::LOG_NDELAY,
+                    Syslog::LOG_PID | Syslog::LOG_CONS | Syslog::LOG_NDELAY,
                     Syslog::LOG_USER)
       end
     end
