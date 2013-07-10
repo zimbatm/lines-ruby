@@ -152,14 +152,14 @@ module Lines
   require 'syslog'
   class SyslogOutputter
     PRI2SYSLOG = {
-      debug:    Syslog::LOG_DEBUG,
-      info:     Syslog::LOG_INFO,
-      warn:     Syslog::LOG_WARNING,
-      warning:  Syslog::LOG_WARNING,
-      err:      Syslog::LOG_ERR,
-      error:    Syslog::LOG_ERR,
-      crit:     Syslog::LOG_CRIT,
-      critical: Syslog::LOG_CRIT,
+      'debug'    => Syslog::LOG_DEBUG,
+      'info'     => Syslog::LOG_INFO,
+      'warn'     => Syslog::LOG_WARNING,
+      'warning'  => Syslog::LOG_WARNING,
+      'err'      => Syslog::LOG_ERR,
+      'error'    => Syslog::LOG_ERR,
+      'crit'     => Syslog::LOG_CRIT,
+      'critical' => Syslog::LOG_CRIT,
     }
 
     def initialize(syslog = Syslog, app_name=nil)
@@ -194,7 +194,7 @@ module Lines
 
     def extract_pri(h)
       pri = h.delete(:pri).to_s.downcase
-      PRI2SYSLOG[pri] || PRI2SYSLOG[:info]
+      PRI2SYSLOG[pri] || Syslog::LOG_INFO
     end
   end
 

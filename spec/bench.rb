@@ -53,3 +53,4 @@ end
 bm "real file logger" do
   Lines.logger.info "Ahoi this is a really cool option"
 end
+
