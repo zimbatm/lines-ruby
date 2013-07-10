@@ -1,4 +1,10 @@
 
+0.1.27 / 2013-07-10 
+===================
+
+ * Fixes AR's notification by changing the ordering
+ * Update the ActiveRecord log subscriber to work with AR 4.0.0
+
 0.1.26 / 2013-07-10 
 ===================
 
