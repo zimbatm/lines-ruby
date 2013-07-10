@@ -46,6 +46,9 @@ module Lines
   end
 end
 
+# Subscribe lines to the AR events
+Lines::ActiveRecordSubscriber.attach_to :active_record
+
 # Remove the default ActiveRecord::LogSubscriber to avoid double outputs
 ActiveSupport::LogSubscriber.log_subscribers.each do |subscriber|
   if subscriber.is_a?(ActiveRecord::LogSubscriber)
@@ -60,6 +63,7 @@ ActiveSupport::LogSubscriber.log_subscribers.each do |subscriber|
     end
   end
 end
+
+# Make sure it has a logger just in case
 ActiveRecord::Base.logger = Lines.logger
-Lines::ActiveRecordSubscriber.attach_to :active_record
 
