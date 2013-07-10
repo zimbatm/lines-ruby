@@ -1,4 +1,5 @@
 require 'active_record'
+require 'active_record/log_subscriber'
 require 'lines'
 
 module Lines
