@@ -1,4 +1,9 @@
 
+0.1.26 / 2013-07-10 
+===================
+
+ * Fixes double outputs from ActiveRecord
+
 0.1.25 / 2013-07-10 : the "hopefully all syslog issues are fixes" edition
 ===================
 
