@@ -32,50 +32,32 @@ module Lines
       expect_load('x="foo\"bar"').to eq("x" => 'foo"bar')
     end
 
+    it "doesn't parse literals when they are keys" do
+      expect_load("3=4").to eq("3" => 4)
+    end
+
+    it "handles some random stuff" do
+      expect_load("=").to eq("" => "")
+      expect_load('"\""=zzz').to eq('"' => "zzz")
+    end
+
     it "parses sample log lines" do
       expect_load("commit=716f337").to eq("commit" => "716f337")
 
-
-      line = <<LINE.strip
-commit=716f337 sql="SELECT MAX(queued_jobs) as queued_jobs, MAX(processing_jobs) as processing_jobs, created_at, FROM_UNIXTIME(UNIX_TIMESTAMP(created_at) - UNIX_TIMESTAMP(created_at)%(300)) as timestamp FROM `job_queue_logs` WHERE `job_queue_logs`.`account_id` = 'effe376baf553c590c02090abe512278' AND (created_at >= '2013-06-28 16:56:12') GROUP BY timestamp" elapsed=31.9ms
+      line = <<LINE.rstrip
+at=2013-07-12T21:33:47Z commit=716f337 sql="SELECT FROM_UNIXTIME(UNIX_TIMESTAMP(created_at) - UNIX_TIMESTAMP(created_at)%(300)) as timestamp FROM `job_queue_logs` WHERE `job_queue_logs`.`account_id` = 'effe376baf553c590c02090abe512278' AND (created_at >= '2013-06-28 16:56:12') GROUP BY timestamp" elapsed=31.9:ms
 LINE
-      p line
-      expect_load(line).to eq("x" => ["..."])
+      expect_load(line).to eq(
+        "at" => Time.at(1373664827).utc,
+        "commit" => "716f337",
+        "sql" => "SELECT FROM_UNIXTIME(UNIX_TIMESTAMP(created_at) - UNIX_TIMESTAMP(created_at)%(300)) as timestamp FROM `job_queue_logs` WHERE `job_queue_logs`.`account_id` = 'effe376baf553c590c02090abe512278' AND (created_at >= '2013-06-28 16:56:12') GROUP BY timestamp",
+        "elapsed" => [31.9, "ms"],
+      )
     end
   end
 
   describe Parser do
     let(:parser) { Parser.new }
-
-    context "number parsing" do
-      subject { parser.number }
-
-      it "parses integers" do
-        expect(subject).to     parse("0")
-        expect(subject).to     parse("1")
-        expect(subject).to     parse("-123")
-        expect(subject).to     parse("120381")
-        expect(subject).to     parse("181")
-      end
-
-      it "parses floats" do
-        expect(subject).to     parse("0.1")
-        expect(subject).to     parse("3.14159")
-        expect(subject).to     parse("-0.00001")
-        expect(subject).to_not parse("0.1.0")
-        expect(subject).to_not parse("0..1")
-      end
-    end
-
-    context "time parsing" do
-      subject { parser.time }
-
-      it "parses IS08601 zulu format" do
-        expect(subject).to     parse("1979-05-27T07:32:00Z")
-        expect(subject).to     parse("2013-02-24T17:26:21Z")
-        expect(subject).to_not parse("2013-02-24T17:26:21+00:00")
-      end
-    end
 
     context "list parsing" do
       subject { parser.list }
@@ -133,15 +115,6 @@ LINE
         expect(subject).to     parse("/\\-d()")
         expect(subject).to_not parse("dfsg dsfg")
         expect(subject).to_not parse("dfsg=dsfg")
-      end
-    end
-
-    context "unit parsing" do
-      subject { parser.unit }
-
-      it "parses units" do
-        expect(subject).to     parse("10:ms")
-        expect(subject).to     parse("-0.2452:s")
       end
     end
 

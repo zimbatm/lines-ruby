@@ -27,20 +27,14 @@ module Lines
   # Mostly copied over from the JSON example:
   #   https://github.com/kschiess/parslet/blob/master/example/json.rb
   class Parser < Parslet::Parser
+    rule(:space) { match(' ') }
+
+    rule(:literal) {
+      match['^=\s{}\[\]\'"'].repeat
+    }
+
     rule(:line) {
       (pair >> (space >> pair).repeat).as(:object)
-    }
-
-    rule(:pair) {
-      (
-         string.as(:key) >>
-         str('=') >>
-         value.as(:val)
-      ).as(:pair)
-    }
-
-    rule(:string) {
-      singlequoted_string | doublequoted_string | literal
     }
 
     rule(:singlequoted_string) {
@@ -55,20 +49,23 @@ module Lines
       ).repeat.as(:doublequoted_string) >> str('"')
     }
 
-    rule(:literal) {
-      match['^:=\s{}\[\]\'"'].repeat.as(:literal)
+    rule(:string) {
+      singlequoted_string | doublequoted_string
+    }
+
+    rule(:pair) {
+      (
+         (string | literal.as(:key_literal)).as(:key) >>
+         str('=') >>
+         value.as(:val)
+      ).as(:pair)
     }
 
     rule(:value) {
       object |
       list |
-      str('#t').as(:true) |
-      str('#f').as(:false) |
-      str('nil').as(:nil) |
-      number |
-      time |
-      unit |
-      string
+      string |
+      literal.as(:value_literal)
     }
 
     rule(:object) {
@@ -80,56 +77,16 @@ module Lines
       str('}')
     }
 
-    rule(:space) { match(' ').repeat(1) }
-
     rule(:list) {
       str('[') >> 
       (value >> (space >> value).repeat).maybe.as(:list) >>
       str(']')
     }
-
-    rule(:number) {
-      (
-        str('-').maybe >> (
-          str('0') | (match['1-9'] >> digit.repeat)
-        ) >> (
-          str('.') >> digit.repeat(1)
-        ).maybe >> (
-          match('[eE]') >> (str('+') | str('-')).maybe >> digit.repeat(1)
-        ).maybe
-      ).as(:number)
-    }
-
-    rule(:time) {
-      digit.repeat(4) >> str('-') >>
-      digit.repeat(2) >> str('-') >>
-      digit.repeat(2) >> str('T') >>
-      digit.repeat(2) >> str(':') >>
-      digit.repeat(2) >> str(':') >>
-      digit.repeat(2) >> str('Z')
-    }
-
-    rule(:unit) {
-      (number >> str(':') >> literal).as(:unit)
-    }
-
-    # Other
-    rule(:digit) { match['0-9'] }
     
     root(:line)
   end
 
   class Transformer < Parslet::Transform
-    rule(list: subtree(:ar)) {
-      case ar
-      when nil
-        []
-      when Array
-        ar
-      else
-        [ar]
-      end
-    }
     rule(object: subtree(:ob)) {
       case ob
       when nil
@@ -143,11 +100,18 @@ module Lines
         h
       end
     }
-    rule(max_depth_object: simple(:mdo)) { {'...' => ''} }
 
-    rule(time: { year: simple(:ye), month: simple(:mo), day: simple(:da), hour: simple(:ho), minute: simple(:min), second: simple(:sec)}) {
-      Time.new(ye.to_i, mo.to_i, da.to_i, ho.to_i, min.to_i, sec.to_i, "+00:00")
+    rule(list: subtree(:ar)) {
+      case ar
+      when nil
+        []
+      when Array
+        ar
+      else
+        [ar]
+      end
     }
+    rule(max_depth_object: simple(:mdo)) { {'...' => ''} }
 
     rule(singlequoted_string: simple(:sqs)) {
       sqs.to_s.gsub("\\'", "'")
@@ -157,21 +121,45 @@ module Lines
       dqs.to_s.gsub('\\"', '"')
     }
 
-    # Sub-parsing of the literal
-    rule(literal: simple(:st)) {
-      st.to_s
+    # Key literal is never parsed for values
+    rule(key_literal: simple(:klit)) {
+      klit.to_s
     }
 
-    rule(literal: subtree(:st2)) {
-      st2.join
+    NUM_REG = /-?(?:0|[1-9])\d*(?:\.\d+)?(?:[eE][+-]\d+)?/
+
+    # Sub-parsing of the literal when it's a value
+    rule(value_literal: simple(:vlit)) {
+      str = vlit.to_s
+      case str
+      when 'nil'
+        nil
+      when '#t'
+        true
+      when '#f'
+        false
+      when /^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)Z$/
+        Time.new($1.to_i, $2.to_i, $3.to_i, $4.to_i, $5.to_i, $6.to_i, '+00:00').utc
+      when /^#{NUM_REG}$/
+        str.index('.') ? Float(str) : Integer(str)
+      when /^(#{NUM_REG}):(.*)$/
+        num = $1.index('.') ? Float($1) : Integer($1)
+        unit = $2
+        [num, unit]
+      else
+        str
+      end
     }
 
-    rule(number: simple(:nb)) {
-      nb.match(/[eE\.]/) ? Float(nb) : Integer(nb)
+    # Empty literal is an empty array
+    rule(key_literal: subtree(:klit2)) {
+      klit2.join
     }
 
-    rule(nil: simple(:ni)) { nil }
-    rule(true: simple(:tr)) { true }
-    rule(false: simple(:fa)) { false }
+    rule(value_literal: subtree(:vlit2)) {
+      vlit2.join
+    }
+
+    
   end
 end
