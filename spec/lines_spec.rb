@@ -165,7 +165,7 @@ describe Lines::Dumper do
   it "knows how to handle circular dependencies" do
     x = {}
     x[:x] = x
-    expect_dump(x).to eq('x={x={x={...}}}')
+    expect_dump(x).to eq('x={x={x={x={...}}}}')
   end
 end
 

@@ -247,7 +247,7 @@ module Lines
 
     def initialize
       @mapping = {}
-      @max_depth = 3
+      @max_depth = 4
     end
 
     def objenc_internal(x, depth=0)
