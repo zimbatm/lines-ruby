@@ -26,15 +26,67 @@ module Lines
 
   # Mostly copied over from the JSON example:
   #   https://github.com/kschiess/parslet/blob/master/example/json.rb
-  #
-  # TODO:
-  #   ISO8601 dates
   class Parser < Parslet::Parser
+    rule(:line) {
+      (pair >> (space >> pair).repeat).as(:object)
+    }
 
-    rule(:spaces) { match(' ').repeat(1) }
-    rule(:spaces?) { spaces.maybe }
+    rule(:pair) {
+      (
+         string.as(:key) >>
+         str('=') >>
+         value.as(:val)
+      ).as(:pair)
+    }
 
-    rule(:digit) { match['0-9'] }
+    rule(:string) {
+      singlequoted_string | doublequoted_string | literal
+    }
+
+    rule(:singlequoted_string) {
+      str("'") >> (
+        str('\\') >> any | str("'").absent? >> any
+      ).repeat.as(:singlequoted_string) >> str("'")
+    }
+
+    rule(:doublequoted_string) {
+      str('"') >> (
+        str('\\') >> any | str('"').absent? >> any
+      ).repeat.as(:doublequoted_string) >> str('"')
+    }
+
+    rule(:literal) {
+      match['^:=\s{}\[\]\'"'].repeat.as(:literal)
+    }
+
+    rule(:value) {
+      object |
+      list |
+      str('#t').as(:true) |
+      str('#f').as(:false) |
+      str('nil').as(:nil) |
+      number |
+      time |
+      unit |
+      string
+    }
+
+    rule(:object) {
+      str('{') >>
+      (
+        str('.').repeat(3).as(:max_depth_object) |
+        (pair >> (space >> pair).repeat).maybe.as(:object)
+      ) >>
+      str('}')
+    }
+
+    rule(:space) { match(' ').repeat(1) }
+
+    rule(:list) {
+      str('[') >> 
+      (value >> (space >> value).repeat).maybe.as(:list) >>
+      str(']')
+    }
 
     rule(:number) {
       (
@@ -57,70 +109,18 @@ module Lines
       digit.repeat(2) >> str('Z')
     }
 
-    rule(:singlequoted_string) {
-      str("'") >> (
-        str('\\') >> any | str("'").absent? >> any
-      ).repeat.as(:string) >> str("'")
+    rule(:unit) {
+      (number >> str(':') >> literal).as(:unit)
     }
 
-    rule(:doublequoted_string) {
-      str('"') >> (
-        str('\\') >> any | str('"').absent? >> any
-      ).repeat.as(:string) >> str('"')
-    }
-
-    rule(:simple_string) {
-      match['a-zA-Z_\-:'].repeat.as(:string)
-    }
-
-    rule(:string) {
-      singlequoted_string | doublequoted_string | simple_string
-    }
-
-    rule(:array) {
-      str('[') >> spaces? >>
-      (value >> (spaces >> value).repeat).maybe.as(:array) >>
-      spaces? >> str(']')
-    }
-
-    rule(:object) {
-      str('{') >> spaces? >>
-      (entry >> (spaces >> entry).repeat).maybe.as(:object) >>
-      spaces? >> str('}')
-    }
-
-    rule(:key) {
-      match['a-zA-Z0-9_'].repeat
-    }
-
-    rule(:value) {
-      str('#t').as(:true) | str('#f').as(:false) |
-      str('nil').as(:nil) |
-      object | array |
-      number | time |
-      string
-    }
-
-    rule(:entry) {
-      (
-         key.as(:key) >>
-         str('=') >>
-         value.as(:val)
-      ).as(:entry)
-    }
-
-    rule(:top) { spaces? >> (entry >> (spaces >> entry).repeat).maybe.as(:object) >> spaces? }
-    #rule(:top) { (digit >> digit).as(:digit) }
-    #rule(:top) { time }
-
-    root(:top)
+    # Other
+    rule(:digit) { match['0-9'] }
+    
+    root(:line)
   end
 
   class Transformer < Parslet::Transform
-
-    class Entry < Struct.new(:key, :val); end
-
-    rule(array: subtree(:ar)) {
+    rule(list: subtree(:ar)) {
       case ar
       when nil
         []
@@ -138,21 +138,32 @@ module Lines
         ob
       else
         [ob]
-      end.inject({}) { |h, e|
-        h[e[:entry][:key].to_s] = e[:entry][:val]; h
-      }
+      end.inject({}) do |h, e|
+        h[e[:pair][:key]] = e[:pair][:val]
+        h
+      end
     }
-
-    # rule(entry: { key: simple(:ke), val: simple(:va) }) {
-    #   Entry.new(ke.to_s, va)
-    # }
+    rule(max_depth_object: simple(:mdo)) { {'...' => ''} }
 
     rule(time: { year: simple(:ye), month: simple(:mo), day: simple(:da), hour: simple(:ho), minute: simple(:min), second: simple(:sec)}) {
       Time.new(ye.to_i, mo.to_i, da.to_i, ho.to_i, min.to_i, sec.to_i, "+00:00")
     }
 
-    rule(string: simple(:st)) {
+    rule(singlequoted_string: simple(:sqs)) {
+      sqs.to_s.gsub("\\'", "'")
+    }
+
+    rule(doublequoted_string: simple(:dqs)) {
+      dqs.to_s.gsub('\\"', '"')
+    }
+
+    # Sub-parsing of the literal
+    rule(literal: simple(:st)) {
       st.to_s
+    }
+
+    rule(literal: subtree(:st2)) {
+      st2.join
     }
 
     rule(number: simple(:nb)) {
