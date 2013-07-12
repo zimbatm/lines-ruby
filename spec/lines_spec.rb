@@ -128,12 +128,12 @@ describe Lines::Dumper do
   end
 
   it "can dump a basicobject" do
-    expect_dump(foo: BasicObject.new).to match(/foo=#<BasicObject:0x[0-9a-f]+>/)
+    expect_dump(foo: BasicObject.new).to match(/foo='#<BasicObject:0x[0-9a-f]+>'/)
   end
 
   it "can dump IO objects" do
     expect_dump(foo: File.open(__FILE__)).to match(/foo='?#<File:[^>]+>'?/)
-    expect_dump(foo: STDOUT).to match(/^foo=(?:#<IO:<STDOUT>>|'#<IO:fd 1>')$/)
+    expect_dump(foo: STDOUT).to match(/^foo='(?:#<IO:<STDOUT>>|#<IO:fd 1>)'$/)
   end
 
   it "dumps time as ISO zulu format" do
@@ -158,8 +158,8 @@ describe Lines::Dumper do
   end
 
   it "dumps [number, literal] tuples as numberliteral" do
-    expect_dump(foo: [3, :ms]).to eq('foo=3ms')
-    expect_dump(foo: [54.2, 's']).to eq('foo=54.2s')
+    expect_dump(foo: [3, :ms]).to eq('foo=3:ms')
+    expect_dump(foo: [54.2, 's']).to eq('foo=54.2:s')
   end
 
   it "knows how to handle circular dependencies" do

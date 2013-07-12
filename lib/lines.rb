@@ -290,7 +290,7 @@ module Lines
       depth += 1
       # num + unit. Eg: 3ms
       if a.size == 2 && a.first.kind_of?(Numeric) && is_literal?(a.last.to_s)
-        numenc(a.first) + strenc(a.last)
+        numenc(a.first) + ':' + strenc(a.last)
       elsif depth > max_depth
         '[...]'
       else
@@ -337,7 +337,7 @@ module Lines
     end
 
     def is_literal?(s)
-      !s.index(/[\s'"=]/)
+      !s.index(/[\s'"=:{}\[\]]/)
     end
 
   end
