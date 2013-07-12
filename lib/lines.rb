@@ -337,7 +337,7 @@ module Lines
     end
 
     def is_literal?(s)
-      !s.index(/[\s'"]/)
+      !s.index(/[\s'"=]/)
     end
 
   end
