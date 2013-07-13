@@ -1,8 +1,8 @@
 require 'spec_helper'
-require 'lines/loader2'
+require 'lines/loader'
 
-describe Lines::Loader2 do
-  subject { Lines::Loader2.new }
+describe Lines::Loader do
+  subject { Lines::Loader.new }
 
   def expect_load(str)
     expect(subject.parse str)

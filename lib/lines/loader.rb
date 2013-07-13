@@ -1,7 +1,7 @@
 module Lines
   module Error; end
 
-  class Loader2
+  class Loader
     class ParseError < StandardError; include Error; end
 
     DOT           = '.'
