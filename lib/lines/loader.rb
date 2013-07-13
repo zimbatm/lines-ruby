@@ -37,7 +37,7 @@ module Lines
     end
 
     def parse(string)
-      init(string)
+      init(string.rstrip)
       inner_obj
     end
 
