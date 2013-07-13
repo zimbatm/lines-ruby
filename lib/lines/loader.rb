@@ -19,8 +19,7 @@ module Lines
     ESCAPED_SINGLE_QUOTE = "\\'"
     ESCAPED_DOUBLE_QUOTE = '\"'
 
-    MAX_DEPTH_MATH = /\.\.\./
-    LITERAL_MATCH = /[^=\s{}\[\]]+/
+    LITERAL_MATCH = /[^=\s}\]]+/
     SINGLE_QUOTE_MATCH = /(?:\\.|[^'])*/
     DOUBLE_QUOTE_MATCH = /(?:\\.|[^"])*/
 

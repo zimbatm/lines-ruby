@@ -1,0 +1,26 @@
+#!/usr/bin/env ruby
+
+libdir = File.expand_path('../../lib', __FILE__)
+$:.unshift(libdir) unless $:.include? libdir
+
+require 'lines'
+
+loader = Lines.loader
+
+start = Time.now
+line_count = 0
+
+$stdin.lines.each do |line|
+  begin
+    line_count += 1
+    loader.load(line)
+  rescue Lines::Error => ex
+    # Lines seem to get truncated by syslog when too long
+    if line.size < 2000
+      p line
+      p ex
+    end
+  end
+end
+
+puts "Parsed #{line_count / (Time.now - start)} lines per second"
