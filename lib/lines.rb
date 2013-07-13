@@ -298,7 +298,6 @@ module Lines
       end
     end
 
-    # TODO: Single-quote espace if possible
     def strenc(s)
       s = s.to_s
       unless is_literal?(s)
