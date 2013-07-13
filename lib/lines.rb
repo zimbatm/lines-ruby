@@ -37,6 +37,14 @@ module Lines
 
   class << self
     def dumper; @dumper ||= Dumper.new end
+
+    def loader
+      @loader ||= (
+        require 'lines/loader'
+        Loader
+      )
+    end
+
     attr_reader :global
     attr_reader :outputters
 
@@ -85,6 +93,14 @@ module Lines
       return obj if obj.kind_of?(Hash)
       return obj.to_h if obj.respond_to?(:to_h)
       obj = {msg: obj}
+    end
+
+    def load(string)
+      loader.load(string)
+    end
+
+    def dump(obj)
+      dumper.dump ensure_hash!(obj)
     end
 
     protected
