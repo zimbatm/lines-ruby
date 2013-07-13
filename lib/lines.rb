@@ -66,7 +66,7 @@ module Lines
     def log(obj, args={})
       obj = prepare_obj(obj, args)
       outputters.each{|out| out.output(dumper, obj) }
-      obj
+      nil
     end
 
     # Add data to the logs
