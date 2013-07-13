@@ -16,12 +16,21 @@ module Lines
     BACKSLASH     = '\\'
     EOF           = nil
 
-    END_OF_LITERAL = [EQUAL, SPACE, OPEN_BRACE, SHUT_BRACE, OPEN_BRACKET, SHUT_BRACKET, EOF]
+    ESCAPED_SINGLE_QUOTE = "\\'"
+    ESCAPED_DOUBLE_QUOTE = '\"'
+
+    MAX_DEPTH_MATH = /\.\.\./
+    LITERAL_MATCH = /[^=\s{}\[\]]+/
+    SINGLE_QUOTE_MATCH = /(?:\\.|[^'])*/
+    DOUBLE_QUOTE_MATCH = /(?:\\.|[^"])*/
 
     NUM_MATCH = /-?(?:0|[1-9])\d*(?:\.\d+)?(?:[eE][+-]\d+)?/
     ISO8601_ZULU_CAPTURE = /^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)Z$/
     NUM_CAPTURE = /^(#{NUM_MATCH})$/
     UNIT_CAPTURE = /^(#{NUM_MATCH}):(.+)/
+
+    # Speeds parsing up a bit
+    constants.each(&:freeze)
 
     def self.load(string)
       new.parse(string)
@@ -57,15 +66,18 @@ module Lines
       @string[@pos+num]
     end
 
+    def skip(num)
+      @pos += num
+      @c = @string[@pos]
+    end
+
+    def match(reg)
+      @string.match(reg, @pos)
+    end
+
     def expect(char)
       if !accept(char)
         fail "Expected '#{char}' but got '#{@c}'"
-      end
-    end
-
-    def expect_not(char)
-      if accept(char)
-        fail "Didn't expect '#{char}'"
       end
     end
 
@@ -73,65 +85,84 @@ module Lines
       raise ParseError, "At #{@pos}, #{msg}"
     end
 
+    def dbg(*x)
+      #p [@pos, @c, @string[0..@pos]] + x
+    end
 
     # Structures
 
 
     def inner_obj
+      dbg :inner_obj
       # Shortcut for the '...' max_depth notation
       if @c == DOT && peek(1) == DOT && peek(2) == DOT
-        expect(DOT)
-        expect(DOT)
-        expect(DOT)
+        expect DOT
+        expect DOT
+        expect DOT
         return {'...' => ''}
       end
 
-      obj = {}
-      while @c != EOF && @c != SHUT_BRACE
-        
+      return {} if @c == EOF || @c == SHUT_BRACE
+
+      # First pair
+      k = key()
+      expect EQUAL
+      obj = {
+        k => value()
+      }
+
+      while accept(SPACE)
         k = key()
-        expect(EQUAL)
+        expect EQUAL
         obj[k] = value()
-        accept(SPACE)
       end
+
       obj
     end
 
     def key
+      dbg :key
+
       if @c == SINGLE_QUOTE
-        quoted_string(SINGLE_QUOTE)
+        single_quoted_string
       elsif @c == DOUBLE_QUOTE
-        quoted_string(DOUBLE_QUOTE)
+        double_quoted_string
       else
         literal(false)
       end
     end
 
-    def quoted_string(quote_type)
-      expect(quote_type)
-      start_pos = @pos
-      while @c != quote_type
-        accept(BACKSLASH)
-        getc
-        fail "didn't expect EOF" if @c == EOF
-      end
-      str = @string[start_pos..@pos-1].gsub(BACKSLASH + quote_type, quote_type)
-      expect(quote_type)
+    def single_quoted_string
+      dbg :single_quoted_string
+
+      expect SINGLE_QUOTE
+      md = match SINGLE_QUOTE_MATCH
+      str = md[0].gsub ESCAPED_SINGLE_QUOTE, SINGLE_QUOTE
+      skip md[0].size
+
+      expect SINGLE_QUOTE
+      str
+    end
+
+    def double_quoted_string
+      dbg :double_quoted_string
+
+      expect DOUBLE_QUOTE
+      md = match DOUBLE_QUOTE_MATCH
+      str = md[0].gsub ESCAPED_DOUBLE_QUOTE, DOUBLE_QUOTE
+      skip md[0].size
+
+      expect DOUBLE_QUOTE
       str
     end
 
     def literal(sub_parse)
-      start_pos = @pos
-      
-      while !END_OF_LITERAL.include?(@c)
-        getc
-      end
+      dbg :literal, sub_parse
 
-      if start_pos == @pos
-        literal = ""
-      else
-        literal = @string[start_pos..@pos-1]
-      end
+      return "" unless ((md = match LITERAL_MATCH))
+
+      literal = md[0]
+      skip literal.size
       
       return literal unless sub_parse
 
@@ -156,29 +187,38 @@ module Lines
     end
 
     def value
+      dbg :value
+
       case @c
       when OPEN_BRACKET
         list
       when OPEN_BRACE
         object
       when DOUBLE_QUOTE
-        quoted_string(DOUBLE_QUOTE)
+        double_quoted_string
       when SINGLE_QUOTE
-        quoted_string(SINGLE_QUOTE)
+        single_quoted_string
       else
-        literal(true)
+        literal(:sub_parse)
       end
     end
 
     def list
+      dbg :list
+
       list = []
       expect(OPEN_BRACKET)
       list.push value
+      while accept(SPACE)
+        list.push value
+      end
       expect(SHUT_BRACKET)
       list
     end
 
     def object
+      dbg :object
+
       expect(OPEN_BRACE)
       obj = inner_obj
       expect(SHUT_BRACE)
