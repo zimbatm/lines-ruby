@@ -11,7 +11,7 @@ require 'time'
 #
 # Example:
 #
-#     log(msg: "Oops !")
+#     log("Oops !", foo: {}, g: [])
 #     #outputs:
 #     # at=2013-03-07T09:21:39+00:00 pid=3242 app=some-process msg="Oops !" foo={} g=[]
 #
@@ -23,19 +23,18 @@ require 'time'
 #     ctx = Lines.context(encoding_id: Log.id)
 #     ctx.log({})
 #
-#     Lines.context(:foo => :bar) do |l|
-#       l.log(:sadfasdf => 3)
+#     Lines.context(foo: 'bar') do |l|
+#       l.log(items_count: 3)
 #     end
 module Lines
   # New lines in Lines
   NL = "\n".freeze
 
-  @global = {}
-  @outputters = []
-
   class << self
-    def dumper; @dumper ||= Dumper.new end
+    attr_reader :global
+    attr_writer :loader, :dumper
 
+    # Parsing object. Responds to #load(string)
     def loader
       @loader ||= (
         require 'lines/loader'
@@ -43,18 +42,31 @@ module Lines
       )
     end
 
-    attr_reader :global
-    attr_reader :outputters
+    # Serializing object. Responds to #dump(hash)
+    def dumper; @dumper ||= Dumper.new end
 
-    # Used to select what output the lines will be put on.
+    # Returns a backward-compatibile Logger
+    def logger
+      @logger ||= (
+        require 'lines/logger'
+        Logger.new(self)
+      )
+    end
+
+    # Used to configure lines.
     #
     # outputs - allows any kind of IO or Syslog
     #
     # Usage:
     #
-    #     Lines.use(Syslog, $stderr)
+    #     Lines.use(Syslog, $stderr, at: proc{ Time.now })
     def use(*outputs)
-      outputters.replace(outputs.flatten.map{|o| to_outputter o})
+      if outputs.last.kind_of?(Hash)
+        @global = outputs.pop
+      else
+        @global = {}
+      end
+      @outputters = outputs.flatten.map{|o| to_outputter o}
     end
 
     # The main function. Used to record objects in the logs as lines.
@@ -63,7 +75,7 @@ module Lines
     # args - complementary values to put in the line
     def log(obj, args={})
       obj = prepare_obj(obj, args)
-      outputters.each{|out| out.output(dumper, obj) }
+      @outputters.each{|out| out.output(dumper, obj) }
       nil
     end
 
@@ -76,14 +88,6 @@ module Lines
       new_context = Context.new ensure_hash!(data)
       yield new_context if block_given?
       new_context
-    end
-
-    # Returns a backward-compatibile logger
-    def logger
-      @logger ||= (
-        require 'lines/logger'
-        Logger.new(self)
-      )
     end
 
     def ensure_hash!(obj) # :nodoc:
@@ -142,11 +146,13 @@ module Lines
       @data = data
     end
 
+    # Works like the Lines.log method.
     def log(obj, args={})
       Lines.log obj, Lines.ensure_hash!(args).merge(data)
     end
   end
 
+  # Handles output to any kind of IO
   class StreamOutputter
     # stream must accept a #write(str) message
     def initialize(stream = $stderr)
@@ -166,6 +172,7 @@ module Lines
   end
 
   require 'syslog'
+  # Handles output to syslog
   class SyslogOutputter
     PRI2SYSLOG = {
       'debug'    => Syslog::LOG_DEBUG,
@@ -377,3 +384,6 @@ module Lines
   end
   extend UniqueIDs
 end
+
+# default config
+Lines.use($stderr)

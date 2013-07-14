@@ -6,7 +6,6 @@ describe Lines do
   let(:outputter) { StringIO.new }
   let(:output) { outputter.string }
   before do
-    Lines.global.replace({})
     Lines.use(outputter)
   end
 

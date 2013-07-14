@@ -15,9 +15,6 @@ An oppinionated logging library that implement the
 STATUS: WORK IN PROGRESS
 ========================
 
-I'm still not quite happy with the setup, I might change it to Lines.configure
-and a block. I'll make a 0.2.x release if that changes.
-
 Doc is still scarce so it's quite hard to get started. I think reading the
 lib/lines.rb should give a good idea of the capabilities.
 

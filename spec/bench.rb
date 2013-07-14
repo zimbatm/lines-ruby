@@ -22,30 +22,32 @@ class FakeIO
   alias syswrite write
 end
 
-Lines.global[:app] = 'benchmark'
-Lines.global[:at] = proc{ Time.now }
-Lines.global[:pid] = Process.pid
+globals = {
+  app: 'benchmark',
+  at: proc{ Time.now },
+  pid: Process.pid,
+}
 
 EX = (raise "FOO" rescue $!)
 
-Lines.use FakeIO.new
+Lines.use(FakeIO.new, globals)
 bm "FakeIO write" do
   Lines.log EX
 end
 
 dev_null = File.open('/dev/null', 'w')
-Lines.use dev_null
+Lines.use(dev_null, globals)
 bm "/dev/null write" do
   Lines.log EX
 end
 
-Lines.use Syslog
+Lines.use(Syslog, globals)
 bm "syslog write" do
   Lines.log EX
 end
 
 real_file = File.open('real_file.log', 'w')
-Lines.use real_file
+Lines.use(real_file, globals)
 bm "real file" do
   Lines.log EX
 end
