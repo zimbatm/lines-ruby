@@ -139,6 +139,10 @@ describe Lines::Dumper do
     expect_dump(foo: Time.at(1337)).to eq('foo=1970-01-01T00:22:17Z')
   end
 
+  it "dumps date as ISO date" do
+    expect_dump(foo: Date.new(1968, 3, 7)).to eq('foo=1968-03-07')
+  end
+
   it "dumps symbols as strings" do
     expect_dump(foo: :some_symbol).to eq('foo=some_symbol')
     expect_dump(foo: :"some symbol").to eq("foo='some symbol'")

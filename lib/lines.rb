@@ -316,7 +316,8 @@ module Lines
       when Array          then arrenc(x, depth)
       when String, Symbol then strenc(x)
       when Numeric        then numenc(x)
-      when Time, Date     then timeenc(x)
+      when Time           then timeenc(x)
+      when Date           then dateenc(x)
       when true           then LIT_TRUE
       when false          then LIT_FALSE
       when nil            then LIT_NIL
@@ -377,6 +378,10 @@ module Lines
 
     def timeenc(t)
       t.utc.iso8601
+    end
+
+    def dateenc(d)
+      d.iso8601
     end
 
     def is_literal?(s)
