@@ -4,6 +4,7 @@ group :development do
   gem 'rdoc'
 end
 group :test do
-  gem 'rspec'
+  gem 'benchmark-ips'
   gem 'rake'
+  gem 'rspec'
 end
