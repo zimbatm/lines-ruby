@@ -27,9 +27,6 @@ require 'time'
 #       l.log(items_count: 3)
 #     end
 module Lines
-  # New lines in Lines
-  NL = "\n".freeze
-
   class << self
     attr_reader :global
     attr_writer :loader, :dumper
@@ -94,7 +91,7 @@ module Lines
       return {} unless obj
       return obj if obj.kind_of?(Hash)
       return obj.to_h if obj.respond_to?(:to_h)
-      obj = {msg: obj}
+      {msg: obj}
     end
 
     # Parses a lines-formatted string
@@ -154,6 +151,8 @@ module Lines
 
   # Handles output to any kind of IO
   class StreamOutputter
+    NL = "\n".freeze
+
     # stream must accept a #write(str) message
     def initialize(stream = $stderr)
       @stream = stream
@@ -163,29 +162,25 @@ module Lines
 
     def output(dumper, obj)
       str = dumper.dump(obj) + NL
-      stream.write str
+      @stream.write str
     end
-
-    protected
-
-    attr_reader :stream
   end
 
   require 'syslog'
   # Handles output to syslog
   class SyslogOutputter
     PRI2SYSLOG = {
-      'debug'    => Syslog::LOG_DEBUG,
-      'info'     => Syslog::LOG_INFO,
-      'warn'     => Syslog::LOG_WARNING,
-      'warning'  => Syslog::LOG_WARNING,
-      'err'      => Syslog::LOG_ERR,
-      'error'    => Syslog::LOG_ERR,
-      'crit'     => Syslog::LOG_CRIT,
-      'critical' => Syslog::LOG_CRIT,
-    }
+      'debug'    => ::Syslog::LOG_DEBUG,
+      'info'     => ::Syslog::LOG_INFO,
+      'warn'     => ::Syslog::LOG_WARNING,
+      'warning'  => ::Syslog::LOG_WARNING,
+      'err'      => ::Syslog::LOG_ERR,
+      'error'    => ::Syslog::LOG_ERR,
+      'crit'     => ::Syslog::LOG_CRIT,
+      'critical' => ::Syslog::LOG_CRIT,
+    }.freeze
 
-    def initialize(syslog = Syslog)
+    def initialize(syslog = ::Syslog)
       @syslog = syslog
     end
 
@@ -198,9 +193,8 @@ module Lines
       obj.delete(:app) # And again
 
       level = extract_pri(obj)
-      str = dumper.dump(obj)
 
-      @syslog.log(level, "%s", str)
+      @syslog.log(level, "%s", dumper.dump(obj))
     end
 
     protected
@@ -209,13 +203,13 @@ module Lines
       return if @syslog.opened?
       app_name ||= File.basename($0)
       @syslog.open(app_name,
-                  Syslog::LOG_PID | Syslog::LOG_CONS | Syslog::LOG_NDELAY,
-                  Syslog::LOG_USER)
+                  ::Syslog::LOG_PID | ::Syslog::LOG_CONS | ::Syslog::LOG_NDELAY,
+                  ::Syslog::LOG_USER)
     end
 
     def extract_pri(h)
       pri = h.delete(:pri).to_s.downcase
-      PRI2SYSLOG[pri] || Syslog::LOG_INFO
+      PRI2SYSLOG[pri] || ::Syslog::LOG_INFO
     end
   end
 
@@ -253,11 +247,35 @@ module Lines
   # This dumper has been inspired by the OkJSON gem (both formats look alike
   # after all).
   class Dumper
+    SPACE = ' '
+    LIT_TRUE = '#t'
+    LIT_FALSE = '#f'
+    LIT_NIL = 'nil'
+    OPEN_BRACE = '{'
+    SHUT_BRACE = '}'
+    OPEN_BRACKET = '['
+    SHUT_BRACKET = ']'
+    SINGLE_QUOTE = "'"
+    DOUBLE_QUOTE = '"'
+
+    constants.each(&:freeze)
+
     def dump(obj) #=> String
       objenc_internal(obj)
     end
 
     # Used to introduce new ruby litterals.
+    #
+    # Usage:
+    #
+    #     Point = Struct.new(:x, :y)
+    #     Lines.dumper.map(Point) do |p|
+    #       "#{p.x}x#{p.y}"
+    #     end
+    #
+    #     Lines.log msg: Point.new(3, 5)
+    #     # logs: msg=3x5
+    #
     def map(klass, &rule)
       @mapping[klass] = rule
     end
@@ -280,7 +298,7 @@ module Lines
       if depth > max_depth
         '...'
       else
-        x.map{|k,v| "#{keyenc(k)}=#{valenc(v, depth)}" }.join(' ')
+        x.map{|k,v| "#{keyenc(k)}=#{valenc(v, depth)}" }.join(SPACE)
       end
     end
 
@@ -299,27 +317,27 @@ module Lines
       when String, Symbol then strenc(x)
       when Numeric        then numenc(x)
       when Time, Date     then timeenc(x)
-      when true           then '#t'
-      when false          then '#f'
-      when nil            then 'nil'
+      when true           then LIT_TRUE
+      when false          then LIT_FALSE
+      when nil            then LIT_NIL
       else
         litenc(x)
       end
     end
 
     def objenc(x, depth)
-      '{' + objenc_internal(x, depth) + '}'
+      OPEN_BRACE + objenc_internal(x, depth) + SHUT_BRACE
     end
 
     def arrenc(a, depth)
       depth += 1
       # num + unit. Eg: 3ms
       if a.size == 2 && a.first.kind_of?(Numeric) && is_literal?(a.last.to_s)
-        numenc(a.first) + ':' + strenc(a.last)
+        "#{numenc(a.first)}:#{strenc(a.last)}"
       elsif depth > max_depth
         '[...]'
       else
-        '[' + a.map{|x| valenc(x, depth)}.join(' ') + ']'
+        OPEN_BRACKET + a.map{|x| valenc(x, depth)}.join(' ') + SHUT_BRACKET
       end
     end
 
@@ -327,9 +345,10 @@ module Lines
       s = s.to_s
       unless is_literal?(s)
         s = s.inspect
-        unless s[1..-2].include?("'")
-          s[0] = s[-1] = "'"
-          s.gsub!('\"', '"')
+        unless s[1..-2].include?(SINGLE_QUOTE)
+          s.gsub!(SINGLE_QUOTE, "\\'")
+          s.gsub!('\"', DOUBLE_QUOTE)
+          s[0] = s[-1] = SINGLE_QUOTE
         end
       end
       s
