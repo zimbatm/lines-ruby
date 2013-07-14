@@ -1,6 +1,5 @@
 require 'date'
 require 'time'
-require 'forwardable'
 
 # Lines is an opinionated structured log format and a library.
 #
