@@ -2,14 +2,13 @@ require 'date'
 require 'time'
 require 'forwardable'
 
-# Lines is an opinionated structured log format and a library
-# inspired by Slogger.
+# Lines is an opinionated structured log format and a library.
 #
-# Don't use log levels. They limit the reasoning of the developer.
 # Log everything in development AND production.
 # Logs should be easy to read, grep and parse.
 # Logging something should never fail.
-# Use syslog.
+# Let the system handle the storage. Write to syslog or STDERR.
+# No log levels necessary. Just log whatever you want.
 #
 # Example:
 #
@@ -61,8 +60,8 @@ module Lines
 
     # The main function. Used to record objects in the logs as lines.
     #
-    # obj - a ruby hash
-    # args -
+    # obj - a ruby hash. coerced to +{"msg"=>obj}+ otherwise
+    # args - complementary values to put in the line
     def log(obj, args={})
       obj = prepare_obj(obj, args)
       outputters.each{|out| out.output(dumper, obj) }
@@ -95,10 +94,12 @@ module Lines
       obj = {msg: obj}
     end
 
+    # Parses a lines-formatted string
     def load(string)
       loader.load(string)
     end
 
+    # Generates a lines-formatted string from the given object
     def dump(obj)
       dumper.dump ensure_hash!(obj)
     end
@@ -134,7 +135,7 @@ module Lines
     end
   end
 
-  # Wrapper object that holds a given context. Emitted by Lines.with
+  # Wrapper object that holds a given context. Emitted by Lines.context
   class Context
     attr_reader :data
 
@@ -255,6 +256,8 @@ module Lines
       @mapping[klass] = rule
     end
 
+    # After a certain depth, arrays are replaced with [...] and objects with
+    # {...}. Default is 4.
     attr_accessor :max_depth
 
     protected
