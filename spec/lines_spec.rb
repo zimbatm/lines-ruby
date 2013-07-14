@@ -2,6 +2,8 @@ require 'spec_helper'
 require 'lines'
 require 'stringio'
 
+NL = "\n"
+
 describe Lines do
   let(:outputter) { StringIO.new }
   let(:output) { outputter.string }
@@ -12,17 +14,17 @@ describe Lines do
   context ".log" do
     it "logs stuff" do
       Lines.log(foo: 'bar')
-      expect(output).to eq('foo=bar' + Lines::NL)
+      expect(output).to eq('foo=bar' + NL)
     end
 
     it "supports a first msg argument" do
       Lines.log("this user is annoying", user: 'bob')
-      expect(output).to eq("msg='this user is annoying' user=bob" + Lines::NL)
+      expect(output).to eq("msg='this user is annoying' user=bob" + NL)
     end
 
     it "logs exceptions" do
       Lines.log(StandardError.new("error time!"), user: 'bob')
-      expect(output).to eq("ex=StandardError msg='error time!' user=bob" + Lines::NL)
+      expect(output).to eq("ex=StandardError msg='error time!' user=bob" + NL)
     end
 
     it "logs exception backtraces when available" do
@@ -34,33 +36,33 @@ describe Lines do
 
     it "works with anything" do
       Lines.log("anything1", "anything2")
-      expect(output).to eq('msg=anything2' + Lines::NL)
+      expect(output).to eq('msg=anything2' + NL)
     end
 
     it "doesn't convert nil args to msg" do
       Lines.log("anything", nil)
-      expect(output).to eq('msg=anything' + Lines::NL)
+      expect(output).to eq('msg=anything' + NL)
     end
   end
 
   context ".context" do
     it "has contextes" do
       Lines.context(foo: "bar").log(a: 'b')
-      expect(output).to eq('a=b foo=bar' + Lines::NL)
+      expect(output).to eq('a=b foo=bar' + NL)
     end
 
     it "has contextes with blocks" do
       Lines.context(foo: "bar") do |ctx|
         ctx.log(a: 'b')
       end
-      expect(output).to eq('a=b foo=bar' + Lines::NL)
+      expect(output).to eq('a=b foo=bar' + NL)
     end
 
     it "mixes everything" do
       Lines.global[:app] = :self
       ctx = Lines.context(foo: "bar")
       ctx.log('msg', ahoi: true)
-      expect(output).to eq('app=self msg=msg ahoi=#t foo=bar' + Lines::NL)
+      expect(output).to eq('app=self msg=msg ahoi=#t foo=bar' + NL)
     end
   end
 
@@ -68,7 +70,7 @@ describe Lines do
     it "is provided for backward-compatibility" do
       l = Lines.logger
       l.info("hi")
-      expect(output).to eq('pri=info msg=hi' + Lines::NL)
+      expect(output).to eq('pri=info msg=hi' + NL)
     end
   end
 
@@ -76,7 +78,7 @@ describe Lines do
     it "prepends data to the line" do
       Lines.global["app"] = :self
       Lines.log 'hey'
-      expect(output).to eq('app=self msg=hey' + Lines::NL)
+      expect(output).to eq('app=self msg=hey' + NL)
     end
 
     it "resolves procs dynamically" do
@@ -85,15 +87,15 @@ describe Lines do
       Lines.log 'test1'
       Lines.log 'test2'
       expect(output).to eq(
-        'count=1 msg=test1' + Lines::NL +
-        'count=2 msg=test2' + Lines::NL
+        'count=1 msg=test1' + NL +
+        'count=2 msg=test2' + NL
       )
     end
 
     it "doesn't fail if a proc has an exception" do
       Lines.global[:X] = proc{ fail "error" }
       Lines.log 'test'
-      expect(output).to eq("X='#<RuntimeError: error>' msg=test" + Lines::NL)
+      expect(output).to eq("X='#<RuntimeError: error>' msg=test" + NL)
     end
   end
 end
