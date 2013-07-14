@@ -4,32 +4,34 @@ module Lines
   class Loader
     class ParseError < StandardError; include Error; end
 
-    DOT           = '.'
-    EQUAL         = '='
-    SPACE         = ' '
-    OPEN_BRACKET  = '['
-    SHUT_BRACKET  = ']'
-    OPEN_BRACE    = '{'
-    SHUT_BRACE    = '}'
-    SINGLE_QUOTE  = "'"
-    DOUBLE_QUOTE  = '"'
-    BACKSLASH     = '\\'
-    EOF           = nil
+    DOT                   = '.'
+    EQUAL                 = '='
+    SPACE                 = ' '
+    OPEN_BRACKET          = '['
+    SHUT_BRACKET          = ']'
+    OPEN_BRACE            = '{'
+    SHUT_BRACE            = '}'
+    SINGLE_QUOTE          = "'"
+    DOUBLE_QUOTE          = '"'
+    BACKSLASH             = '\\'
 
-    ESCAPED_SINGLE_QUOTE = "\\'"
-    ESCAPED_DOUBLE_QUOTE = '\"'
+    ESCAPED_SINGLE_QUOTE  = "\\'"
+    ESCAPED_DOUBLE_QUOTE  = '\"'
 
-    LITERAL_MATCH = /[^=\s}\]]+/
-    SINGLE_QUOTE_MATCH = /(?:\\.|[^'])*/
-    DOUBLE_QUOTE_MATCH = /(?:\\.|[^"])*/
+    LITERAL_MATCH         = /[^=\s}\]]+/
+    SINGLE_QUOTE_MATCH    = /(?:\\.|[^'])*/
+    DOUBLE_QUOTE_MATCH    = /(?:\\.|[^"])*/
 
-    NUM_MATCH = /-?(?:0|[1-9])\d*(?:\.\d+)?(?:[eE][+-]\d+)?/
-    ISO8601_ZULU_CAPTURE = /^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)Z$/
-    NUM_CAPTURE = /^(#{NUM_MATCH})$/
-    UNIT_CAPTURE = /^(#{NUM_MATCH}):(.+)/
+    NUM_MATCH             = /-?(?:0|[1-9])\d*(?:\.\d+)?(?:[eE][+-]\d+)?/
+    ISO8601_ZULU_CAPTURE  = /^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)Z$/
+    NUM_CAPTURE           = /^(#{NUM_MATCH})$/
+    UNIT_CAPTURE          = /^(#{NUM_MATCH}):(.+)/
 
     # Speeds parsing up a bit
     constants.each(&:freeze)
+
+    EOF                   = nil
+
 
     def self.load(string)
       new.parse(string)
