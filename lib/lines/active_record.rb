@@ -35,6 +35,7 @@ module Lines
       end
 
       args[:elapsed] = [event.duration.round(1), 'ms']
+      args[:measure] = 'sql.query'
 
       Lines.log(args)
     end

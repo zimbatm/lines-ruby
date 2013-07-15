@@ -33,6 +33,7 @@ module Lines
         status: status.to_s[0..3],
         length: extract_content_length(header),
         elapsed: [Time.now - began_at, 's'],
+        measure: 'http.request',
       )
     end
   end
