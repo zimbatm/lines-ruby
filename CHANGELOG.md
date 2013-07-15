@@ -1,4 +1,21 @@
 
+0.2.0 / 2013-07-15 
+==================
+
+ * Use benchmark-ips for benchs
+ * Fixes serialization of Date objects
+ * Lines now outputs to $stderr by default.
+ * Lines.use resets the global context.
+ * Improved the doc
+ * Lines.log now returns nil instead of the logged object.
+ * Support parsing lines that end with \r\n or spaces
+ * Add Lines.load and Lines.dump for JSON-like functionality
+ * Introduced a hand-written parser that performs 200x faster
+ * Differentiate units with a : sign to ensure their parsability
+ * Escape strings that contain an equal sign
+ * Change the default max_depth from 3 to 4
+ * Make sure ActiveRecord's log subscriber is loaded
+
 0.1.27 / 2013-07-10 
 ===================
 
