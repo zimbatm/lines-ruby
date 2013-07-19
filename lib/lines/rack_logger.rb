@@ -32,7 +32,7 @@ module Lines
         query:  env['QUERY_STRING'],
         status: status.to_s[0..3],
         length: extract_content_length(header),
-        elapsed: [Time.now - began_at, 's'],
+        elapsed: [(Time.now - began_at) * 1000, 'ms'],
         measure: 'http.request',
       )
     end
