@@ -8,7 +8,10 @@ describe Lines do
   let(:outputter) { StringIO.new }
   let(:output) { outputter.string }
   before do
-    Lines.use(outputter)
+    Lines.configure(
+      output: outputter,
+      global: {}
+    )
   end
 
   context ".log" do
@@ -31,7 +34,7 @@ describe Lines do
       ex = (raise "foo" rescue $!)
       #expect(ex).not_to eq(nil)
       Lines.log(ex)
-      expect(output).to match(/ex=RuntimeError msg=foo backtrace=\[[^\]]+\]/)
+      expect(output).to match("ex=RuntimeError msg=foo ..." + NL)
     end
 
     it "works with anything" do

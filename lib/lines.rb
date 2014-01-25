@@ -11,7 +11,7 @@ require 'time'
 #
 # Example:
 #
-#     log("Oops !", foo: {}, g: [])
+#     Lines.log("Oops !", foo: {}, g: [])
 #     #outputs:
 #     # at=2013-03-07T09:21:39+00:00 pid=3242 app=some-process msg="Oops !" foo={} g=[]
 #
@@ -28,42 +28,67 @@ require 'time'
 #     end
 module Lines
   class << self
-    attr_reader :global
-    attr_writer :loader, :dumper
+    attr_accessor :global
+    attr_reader :max_depth
+    attr_reader :max_width
 
-    # Parsing object. Responds to #load(string)
-    def loader
-      @loader ||= (
-        require 'lines/loader'
-        Loader
+    # Serializer object that responds to #dump(hash)
+    attr_reader :dumper
+
+    # Master configure setup
+    #
+    # * output
+    # * global
+    # * mapping
+    # * max_depth
+    # * max_wdith
+    def configure(config)
+      global, mapping, max_depth, max_width, output =
+        config.values_at(:global, :mapping, :max_depth, :max_width, :output)
+
+      @global = global if config.key?(:global)
+      @mapping = mapping if config.key?(:mapping)
+      @max_depth = max_depth if config.key?(:max_depth)
+      @max_width = max_width if config.key?(:max_width)
+      @output = [output].flatten.compact.map{|o| to_output o} if config.key?(:output)
+
+      @dumper = Dumper.new(
+        mapping: @mapping,
+        max_width: @max_width,
+        max_depth: @max_depth,
       )
     end
 
-    # Serializing object. Responds to #dump(hash)
-    def dumper; @dumper ||= Dumper.new end
-
-    # Returns a backward-compatibile Logger
-    def logger
-      @logger ||= (
-        require 'lines/logger'
-        Logger.new(self)
-      )
+    # Used to introduce new ruby litterals.
+    #
+    # Usage:
+    #
+    #     Point = Struct.new(:x, :y)
+    #     Lines.map(Point) do |p|
+    #       "#{p.x}x#{p.y}"
+    #     end
+    #
+    #     Lines.log msg: Point.new(3, 5)
+    #     # logs: msg=3x5
+    #
+    def map(klass, &rule)
+      @mapping.merge!(klass, rule)
     end
 
-    # Used to configure lines.
+    # DEPRECATED. Use #configure.
     #
     # outputs - allows any kind of IO or Syslog
     #
     # Usage:
     #
-    #     Lines.use(Syslog, $stderr, at: proc{ Time.now })
+    #     Lines.use(Syslog, $stderr)
+    #
+    # Deprecated: if the last argument is a hash it replaces the globals
     def use(*outputs)
-      if outputs.last.kind_of?(Hash)
-        @global = outputs.pop
-      else
-        @global = {}
-      end
-      @outputters = outputs.flatten.map{|o| to_outputter o}
+      configure(
+        global: outputs.last.kind_of?(Hash) ? outputs.pop : {},
+        outputs: outputs,
+      )
     end
 
     # The main function. Used to record objects in the logs as lines.
@@ -72,7 +97,7 @@ module Lines
     # args - complementary values to put in the line
     def log(obj, args={})
       obj = prepare_obj(obj, args)
-      @outputters.each{|out| out.output(dumper, obj) }
+      @output.each{|out| out.output(dumper, obj) }
       nil
     end
 
@@ -87,11 +112,12 @@ module Lines
       new_context
     end
 
-    def ensure_hash!(obj) # :nodoc:
-      return {} unless obj
-      return obj if obj.kind_of?(Hash)
-      return obj.to_h if obj.respond_to?(:to_h)
-      {msg: obj}
+    # Parsing object that responds to #load(string)
+    def loader
+      @loader ||= (
+        require 'lines/loader'
+        Loader
+      )
     end
 
     # Parses a lines-formatted string
@@ -102,6 +128,21 @@ module Lines
     # Generates a lines-formatted string from the given object
     def dump(obj)
       dumper.dump ensure_hash!(obj)
+    end
+
+    # Returns an object compatible with the Logger interface.
+    def logger
+      @logger ||= (
+        require 'lines/logger'
+        Logger.new(self)
+      )
+    end
+
+    def ensure_hash!(obj) # :nodoc:
+      return {} unless obj
+      return obj if obj.kind_of?(Hash)
+      return obj.to_h if obj.respond_to?(:to_h)
+      {msg: obj}
     end
 
     protected
@@ -122,15 +163,15 @@ module Lines
       g = global.inject({}) do |h, (k,v)|
         h[k] = (v.respond_to?(:call) ? v.call : v) rescue $!
         h
-      end
+      end.merge(obj.merge(args))
 
       g.merge(obj.merge(args))
     end
 
-    def to_outputter(out)
+    def to_output(out)
       return out if out.respond_to?(:output)
-      return StreamOutputter.new(out) if out.respond_to?(:write)
-      return SyslogOutputter.new if out == ::Syslog
+      return StreamOutput.new(out) if out.respond_to?(:write)
+      return SyslogOutput.new if out == ::Syslog
       raise ArgumentError, "unknown outputter #{out.inspect}"
     end
   end
@@ -150,7 +191,7 @@ module Lines
   end
 
   # Handles output to any kind of IO
-  class StreamOutputter
+  class StreamOutput
     NL = "\n".freeze
 
     # stream must accept a #write(str) message
@@ -168,7 +209,7 @@ module Lines
 
   require 'syslog'
   # Handles output to syslog
-  class SyslogOutputter
+  class SyslogOutput
     PRI2SYSLOG = {
       'debug'    => ::Syslog::LOG_DEBUG,
       'info'     => ::Syslog::LOG_INFO,
@@ -260,45 +301,49 @@ module Lines
 
     constants.each(&:freeze)
 
-    def dump(obj) #=> String
-      objenc_internal(obj)
-    end
-
-    # Used to introduce new ruby litterals.
-    #
-    # Usage:
-    #
-    #     Point = Struct.new(:x, :y)
-    #     Lines.dumper.map(Point) do |p|
-    #       "#{p.x}x#{p.y}"
-    #     end
-    #
-    #     Lines.log msg: Point.new(3, 5)
-    #     # logs: msg=3x5
-    #
-    def map(klass, &rule)
-      @mapping[klass] = rule
-    end
+    # TODO: Doc
+    attr_reader :mapping
 
     # After a certain depth, arrays are replaced with [...] and objects with
     # {...}. Default is 4.
-    attr_accessor :max_depth
+    attr_reader :max_depth
+
+    # After a certain with, the end is replaced with "...". Default is nil.
+    attr_reader :max_with
+
+    def initialize(config={})
+      @mapping   = config[:mapping]   || {}
+      @max_depth = config[:max_depth] || 4
+      @max_width = config[:max_width] || 2000
+    end
+
+    # Takes a hash and encodes it to a string
+    def dump(obj, max_depth=@max_depth, max_width=@max_width) #=> String
+      objenc_internal(obj, max_depth, max_width)
+    end
 
     protected
 
-    attr_reader :mapping
-
-    def initialize
-      @mapping = {}
-      @max_depth = 4
-    end
-
-    def objenc_internal(x, depth=0)
-      depth += 1
-      if depth > max_depth
+    def objenc_internal(obj, max_depth, max_width=nil)
+      max_depth -= 1
+      if max_depth < 0
         '...'
+      elsif max_width
+        size = 0
+        y = []
+        obj.each_pair do |k,v|
+          str = "#{keyenc(k)}=#{valenc(v, max_depth)}"
+          size += str.size + 1
+          if size > max_width
+            y.pop if size - str.size + 3 > @max_width
+            y.push '...'
+            break
+          end
+          y.push str
+        end
+        y.join(SPACE)
       else
-        x.map{|k,v| "#{keyenc(k)}=#{valenc(v, depth)}" }.join(SPACE)
+        obj.map{|k,v| "#{keyenc(k)}=#{valenc(v, max_depth)}" }.join(SPACE)
       end
     end
 
@@ -310,10 +355,10 @@ module Lines
       end
     end
 
-    def valenc(x, depth)
+    def valenc(x, max_depth)
       case x
-      when Hash           then objenc(x, depth)
-      when Array          then arrenc(x, depth)
+      when Hash           then objenc(x, max_depth)
+      when Array          then arrenc(x, max_depth)
       when String, Symbol then strenc(x)
       when Numeric        then numenc(x)
       when Time           then timeenc(x)
@@ -326,19 +371,19 @@ module Lines
       end
     end
 
-    def objenc(x, depth)
-      OPEN_BRACE + objenc_internal(x, depth) + SHUT_BRACE
+    def objenc(x, max_depth)
+      OPEN_BRACE + objenc_internal(x, max_depth) + SHUT_BRACE
     end
 
-    def arrenc(a, depth)
-      depth += 1
+    def arrenc(a, max_depth)
+      max_depth -= 1
       # num + unit. Eg: 3ms
       if a.size == 2 && a.first.kind_of?(Numeric) && is_literal?(a.last.to_s)
         "#{numenc(a.first)}:#{strenc(a.last)}"
-      elsif depth > max_depth
+      elsif max_depth < 0
         '[...]'
       else
-        OPEN_BRACKET + a.map{|x| valenc(x, depth)}.join(' ') + SHUT_BRACKET
+        OPEN_BRACKET + a.map{|x| valenc(x, max_depth)}.join(SPACE) + SHUT_BRACKET
       end
     end
 
@@ -387,7 +432,6 @@ module Lines
     def is_literal?(s)
       !s.index(/[\s'"=:{}\[\]]/)
     end
-
   end
 
   require 'securerandom'
@@ -410,4 +454,11 @@ module Lines
 end
 
 # default config
-Lines.use($stderr)
+Lines.configure(
+  output: $stderr,
+  global: {},
+  mapping: {},
+  max_depth: 4,
+  # rsyslog's default is 2048, this gives a bit of room for the pid and hostname
+  max_width: 2000,
+)
