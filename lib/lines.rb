@@ -372,8 +372,7 @@ module Lines
         strenc(x.inspect)
       end
     rescue
-      klass = (class << x; self; end).ancestors.first
-      strenc("#<#{klass}:0x#{x.__id__.to_s(16)}>")
+      strenc (class << x; self; end).ancestors.first.inspect
     end
 
     def timeenc(t)

@@ -129,7 +129,12 @@ describe Lines::Dumper do
   end
 
   it "can dump a basicobject" do
-    expect_dump(foo: BasicObject.new).to match(/foo='#<BasicObject:0x[0-9a-f]+>'/)
+    if RUBY_VERSION >= '2.1.0'
+      regexp = /foo='#<Class:#<BasicObject:0x[0-9a-f]+>>'/
+    else
+      regexp = /foo=BasicObject/
+    end
+    expect_dump(foo: BasicObject.new).to match(regexp)
   end
 
   it "can dump IO objects" do
