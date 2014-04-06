@@ -1,4 +1,5 @@
 require 'benchmark/ips'
+require 'logger'
 
 $:.unshift File.expand_path('../../lib', __FILE__)
 require 'lines'
@@ -15,7 +16,12 @@ globals = {
   pid: Process.pid,
 }
 
+at_exit{
+  File.unlink "real_file.log"
+}
+
 EX = (raise "FOO" rescue $!)
+DEV_NULL = File.open('/dev/null', 'w')
 
 Benchmark.ips do |x|
   x.report "FakeIO write" do |n|
@@ -24,8 +30,7 @@ Benchmark.ips do |x|
   end
 
   x.report "/dev/null write" do |n|
-    dev_null = File.open('/dev/null', 'w')
-    Lines.use(dev_null, globals)
+    Lines.use(DEV_NULL, globals)
     n.times{ Lines.log EX }
   end
 
@@ -42,5 +47,15 @@ Benchmark.ips do |x|
 
   x.report "real file logger" do |n|
     n.times{ Lines.logger.info "Ahoi this is a really cool option" }
+  end
+
+  x.report "traditioanl Logger" do |n|
+    l = Logger.new(DEV_NULL)
+    n.times{ l.info "This is a logger message" }
+  end
+
+  x.report "Logger with lines" do |n|
+    l = Lines.logger
+    n.times{ l.info "This is a logger message" }
   end
 end
