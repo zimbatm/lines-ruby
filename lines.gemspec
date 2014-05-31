@@ -6,10 +6,12 @@ require 'lines/version'
 Gem::Specification.new do |spec|
   spec.name          = "lines"
   spec.version       = Lines::VERSION
-  spec.authors       = ["Jonas Pfenniger"]
-  spec.email         = ["jonas@pfenniger.name"]
-  spec.description   = %q{structured logs for humans}
-  spec.summary       = %q{Lines is an opinionated structured logging library}
+  spec.authors       = ["zimbatm"]
+  spec.email         = ["zimbatm@zimbatm.com"]
+  spec.summary       = %q{structured logs for humans}
+  spec.description   = <<DESC
+A log format that's readable by humans and easily parseable by computers.
+DESC
   spec.homepage      = 'https://github.com/zimbatm/lines-ruby'
   spec.license       = "MIT"
 
