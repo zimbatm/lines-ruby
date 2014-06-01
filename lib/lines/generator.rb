@@ -51,8 +51,6 @@ module Lines
     SINGLE_QUOTE = "'"
     DOUBLE_QUOTE = '"'
 
-    constants.each(&:freeze)
-
     # max_nesting::
     #   After a certain depth, arrays are replaced with [...] and objects with
     #   {...}. Default is 4

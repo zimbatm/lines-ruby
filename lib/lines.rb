@@ -7,21 +7,17 @@ require 'lines/version'
 # Lines is an opinionated structured log format
 module Lines; extend self
   # The global default options for the Lines.parse and Lines.load method:
-  #   max_nesting: 100
   #   symbolize_names: false
   attr_reader :parse_default_options
   @parse_default_options = {
-    max_nesting: 100,
     symbolize_names: false,
   }
 
   # The global default options for the Lines.dump method:
   #   max_nesting: 4
-  #   pretty_strings: true
   attr_reader :generate_default_options
   @generate_default_options = {
     max_nesting: 4,
-    pretty_strings: true,
   }
 
   attr_accessor :parser
@@ -33,8 +29,6 @@ module Lines; extend self
   # Parse the Lines string _source_ into a Ruby data structure and return it.
   #
   # _options_ can have the following keys:
-  # * *max_nesting*: The maximum depth of nesting allowed in the parsed data
-  #   structures. It defaults to 100.
   # * *symbolize_names*: If set to true, returns symbols for the names
   #   (keys) in a Lines object. Otherwise strings are returned. Strings are
   #   the default.
@@ -60,6 +54,9 @@ module Lines; extend self
   # to the read method. If _proc_ was given, it will be called with any nested
   # Ruby object as an argument recursively in depth first order. To modify the
   # default options pass in the optional _options_ argument as well.
+  #
+  # The default options for the parser can be changed via the
+  # parse_default_options method.
   #
   # This method is part of the implementation of the load/dump interface of
   # Marshal and YAML.
@@ -97,13 +94,13 @@ module Lines; extend self
   # If anIO (an IO-like object or an object that responds to the write method)
   # was given, the resulting JSON is written to it.
   #
-  # If the number of nested arrays or objects exceeds _limit_, an ArgumentError
-  # exception is raised. This argument is similar (but not exactly the
-  # same!) to the _limit_ argument in Marshal.dump.
-  # FIXME: right now it replaces deep elements with [...] and {...}
+  # If the number of nested arrays or objects exceeds _limit_, the object or
+  # array is replaced with {...} or [...] respectively.
+  # This argument is similar (but not exactly the same!) to the _limit_
+  # argument in Marshal.dump.
   #
   # The default options for the generator can be changed via the
-  # dump_default_options method.
+  # generate_default_options method.
   #
   # This method is part of the implementation of the load/dump interface of
   # Marshal and YAML.

@@ -2,6 +2,8 @@ require 'spec_helper'
 require 'lines/parser'
 
 describe Lines::Parser do
+  subject{ Lines::Parser }
+
   def expect_parse(str, opts={})
     expect(subject.parse str, opts)
   end
@@ -43,6 +45,10 @@ describe Lines::Parser do
 
   it "knows how to restore iso time" do
     expect_parse("at=2013-07-12T21:33:47Z").to eq("at" => Time.at(1373664827).utc)
+  end
+
+  it "can symbolize the names" do
+    expect_parse("foo=bar", symbolize_names: true).to eq(foo: "bar")
   end
 
   it "parses sample log lines" do

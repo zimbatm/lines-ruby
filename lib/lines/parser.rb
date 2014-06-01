@@ -23,22 +23,16 @@ module Lines
     ISO8601_ZULU_CAPTURE  = /^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)Z$/
     NUM_CAPTURE           = /^(#{NUM_MATCH})$/
 
-    constants.each(&:freeze)
-
     def self.parse(string, opts={})
-      new.parse(string, opts)
+      new(string, opts).parse
     end
 
-    def parse(string, opts)
-      init(string)
-      inner_obj
+    def initialize(string, opts)
+      @s = StringScanner.new(string)
+      @opts = opts
     end
 
     protected
-
-    def init(string)
-      @s = StringScanner.new(string)
-    end
 
     def accept(char)
       if @s.peek(1) == char
@@ -93,11 +87,13 @@ module Lines
 
       obj
     end
+    alias parse inner_obj
+    public :parse
 
     def key
       dbg :key
 
-      case @s.peek(1)
+      ret = case @s.peek(1)
       when SINGLE_QUOTE
         single_quoted_string
       when DOUBLE_QUOTE
@@ -105,6 +101,7 @@ module Lines
       else
         literal(false)
       end
+      @opts[:symbolize_names] ? ret.to_sym : ret
     end
 
     def single_quoted_string
