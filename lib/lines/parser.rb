@@ -4,7 +4,6 @@ require 'lines/common'
 
 module Lines
   class Parser
-    DOT                   = '.'
     EQUAL                 = '='
     SPACE                 = ' '
     OPEN_BRACKET          = '['
@@ -40,7 +39,7 @@ module Lines
     end
 
     def parse(string, opts)
-      init(string.rstrip)
+      init(string)
       inner_obj
     end
 
@@ -70,11 +69,11 @@ module Lines
     end
 
     def fail(msg)
-      raise ParseError, "At #{@s.pos}, #{msg}"
+      raise ParseError, "At #{@s}, #{msg}"
     end
 
     def dbg(*x)
-      #p [@s.pos, @c, @string[0..@s.pos]] + x
+      #p [@s] + x
     end
 
     # Structures
@@ -96,7 +95,7 @@ module Lines
         k => value()
       }
 
-      while accept(SPACE)
+      while accept(SPACE) and !@s.eos?
         k = key()
         expect EQUAL
         obj[k] = value()

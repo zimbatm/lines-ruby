@@ -17,6 +17,10 @@ describe Lines::Parser do
     expect_parse('x={...}').to eq("x" => {"..." => ""})
   end
 
+  it "handles unfinished lines" do
+    expect_parse('x=foo ').to eq("x" => "foo")
+  end
+
   it "treats missing value in a pair as an empty string" do
     expect_parse('x=').to eq("x" => "")
   end
