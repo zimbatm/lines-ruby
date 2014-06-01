@@ -1,3 +1,5 @@
+# -*- encoding : utf-8 -*-
+
 require 'strscan'
 
 require 'lines/common'
@@ -28,7 +30,6 @@ module Lines
     end
 
     def parse(string, opts)
-      # TODO: make use of the opts
       init(string)
       inner_obj
     end

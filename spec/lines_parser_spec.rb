@@ -41,6 +41,10 @@ describe Lines::Parser do
     expect_parse('"\""=zzz').to eq('"' => "zzz")
   end
 
+  it "knows how to restore iso time" do
+    expect_parse("at=2013-07-12T21:33:47Z").to eq("at" => Time.at(1373664827).utc)
+  end
+
   it "parses sample log lines" do
     expect_parse("commit=716f337").to eq("commit" => "716f337")
 

@@ -1,3 +1,5 @@
+# -*- encoding : utf-8 -*-
+
 require 'lines/parser'
 require 'lines/generator'
 require 'lines/version'

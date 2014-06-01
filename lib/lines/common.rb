@@ -1,3 +1,5 @@
+# -*- encoding : utf-8 -*-
+
 module Lines
   module Error
     # Used to mark non-lines errors as being part of the library. This lets

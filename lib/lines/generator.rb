@@ -1,3 +1,5 @@
+# -*- encoding : utf-8 -*-
+
 require 'date'
 require 'time'
 
@@ -102,7 +104,6 @@ module Lines
     def strenc(s)
       s = s.to_s
       # Poor-man's escaping
-      # TODO: Scrub non-unicode characters
       if s.include?(SINGLE_QUOTE)
         s.inspect
       elsif s.index(/[\s"=:{}\[\]]/)
