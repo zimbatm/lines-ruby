@@ -55,7 +55,7 @@ module Lines
     def objenc_internal(x, depth)
       depth -= 1
       if depth < 0
-        '...'
+        DOT_DOT_DOT
       else
         x.map{|k,v| "#{keyenc(k)}=#{valenc(v, depth)}" }.join(SPACE)
       end
@@ -83,11 +83,11 @@ module Lines
 
     def arrenc(a, depth)
       depth -= 1
-      if depth < 0
-        '[...]'
+      OPEN_BRACKET + if depth < 0
+        DOT_DOT_DOT
       else
-        OPEN_BRACKET + a.map{|x| valenc(x, depth)}.join(' ') + SHUT_BRACKET
-      end
+        a.map{|x| valenc(x, depth)}.join(SPACE)
+      end + SHUT_BRACKET
     end
 
     def keyenc(s)
@@ -95,9 +95,9 @@ module Lines
       # Poor-man's escaping
       if s.include?(SINGLE_QUOTE)
         s.inspect
-      elsif s.index(/[\s"=:{}\[\]]/)
+      elsif s.index(STRING_ESCAPE_MATCH)
         SINGLE_QUOTE +
-          s.inspect[1..-2].gsub('\\"', '"') +
+          s.inspect[1..-2].gsub(ESCAPED_DOUBLE_QUOTE, DOUBLE_QUOTE) +
         SINGLE_QUOTE
       else
         s
@@ -111,7 +111,7 @@ module Lines
         s.inspect
       elsif s.index(STRING_ESCAPE_MATCH) || s =~ NUM_CAPTURE || [LIT_TRUE, LIT_FALSE, LIT_NIL].include?(s)
         SINGLE_QUOTE +
-          s.inspect[1..-2].gsub('\\"', '"') +
+          s.inspect[1..-2].gsub(ESCAPED_DOUBLE_QUOTE, DOUBLE_QUOTE) +
         SINGLE_QUOTE
       else
         s

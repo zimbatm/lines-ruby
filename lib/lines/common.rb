@@ -18,12 +18,18 @@ module Lines
   LIT_NIL   = 'nil'
 
   SPACE         = ' '
+  EQUAL         = '='
   OPEN_BRACE    = '{'
   SHUT_BRACE    = '}'
   OPEN_BRACKET  = '['
   SHUT_BRACKET  = ']'
   SINGLE_QUOTE  = "'"
   DOUBLE_QUOTE  = '"'
+  DOT_DOT_DOT   = '...'
+
+  BACKSLASH             = '\\'
+  ESCAPED_SINGLE_QUOTE  = "\\'"
+  ESCAPED_DOUBLE_QUOTE  = '\"'
 
   NUM_MATCH             = /-?(?:0|[1-9])\d*(?:\.\d+)?(?:[eE][+-]\d+)?/
   ISO8601_ZULU_CAPTURE  = /^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)Z$/

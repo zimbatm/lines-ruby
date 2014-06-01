@@ -6,13 +6,6 @@ require 'lines/common'
 
 module Lines
   class Parser
-    EQUAL                 = '='
-    BACKSLASH             = '\\'
-    
-    ESCAPED_SINGLE_QUOTE  = "\\'"
-    ESCAPED_DOUBLE_QUOTE  = '\"'
-
-    DOT_DOT_DOT           = '...'
     DOT_DOT_DOT_MATCH     = /\.\.\./
 
     LITERAL_MATCH         = /[^=\s}\]]+/
@@ -26,6 +19,10 @@ module Lines
     def initialize(string, opts)
       @s = StringScanner.new(string)
       @opts = opts
+    end
+
+    def parse
+      inner_obj
     end
 
     protected
@@ -83,8 +80,6 @@ module Lines
 
       obj
     end
-    alias parse inner_obj
-    public :parse
 
     def key
       dbg :key
