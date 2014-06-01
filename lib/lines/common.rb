@@ -13,18 +13,17 @@ module Lines
   class ParseError < StandardError; include Error; end
   #class LogicError < RuntimeError; include Error; end
 
+  LIT_TRUE  = '#t'
+  LIT_FALSE = '#f'
+  LIT_NIL   = 'nil'
 
-  LIT_TRUE              = '#t'
-  LIT_FALSE             = '#f'
-  LIT_NIL               = 'nil'
-
-  SPACE = ' '
-  OPEN_BRACE = '{'
-  SHUT_BRACE = '}'
-  OPEN_BRACKET = '['
-  SHUT_BRACKET = ']'
-  SINGLE_QUOTE = "'"
-  DOUBLE_QUOTE = '"'
+  SPACE         = ' '
+  OPEN_BRACE    = '{'
+  SHUT_BRACE    = '}'
+  OPEN_BRACKET  = '['
+  SHUT_BRACKET  = ']'
+  SINGLE_QUOTE  = "'"
+  DOUBLE_QUOTE  = '"'
 
   NUM_MATCH             = /-?(?:0|[1-9])\d*(?:\.\d+)?(?:[eE][+-]\d+)?/
   ISO8601_ZULU_CAPTURE  = /^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)Z$/

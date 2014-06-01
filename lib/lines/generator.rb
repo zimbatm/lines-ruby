@@ -40,16 +40,7 @@ module Lines
   # This dumper has been inspired by the OkJSON gem (both formats look alike
   # after all).
   module Generator; extend self
-    SPACE = ' '
-    LIT_TRUE = '#t'
-    LIT_FALSE = '#f'
-    LIT_NIL = 'nil'
-    OPEN_BRACE = '{'
-    SHUT_BRACE = '}'
-    OPEN_BRACKET = '['
-    SHUT_BRACKET = ']'
-    SINGLE_QUOTE = "'"
-    DOUBLE_QUOTE = '"'
+    STRING_ESCAPE_MATCH = /[\s"=:{}\[\]]/
 
     # max_nesting::
     #   After a certain depth, arrays are replaced with [...] and objects with
@@ -118,7 +109,7 @@ module Lines
       # Poor-man's escaping
       if s.include?(SINGLE_QUOTE)
         s.inspect
-      elsif s.index(/[\s"=:{}\[\]]/) || s =~ NUM_CAPTURE || [LIT_TRUE, LIT_FALSE, LIT_NIL].include?(s)
+      elsif s.index(STRING_ESCAPE_MATCH) || s =~ NUM_CAPTURE || [LIT_TRUE, LIT_FALSE, LIT_NIL].include?(s)
         SINGLE_QUOTE +
           s.inspect[1..-2].gsub('\\"', '"') +
         SINGLE_QUOTE
