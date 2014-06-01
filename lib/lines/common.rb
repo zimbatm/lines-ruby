@@ -25,4 +25,8 @@ module Lines
   SHUT_BRACKET = ']'
   SINGLE_QUOTE = "'"
   DOUBLE_QUOTE = '"'
+
+  NUM_MATCH             = /-?(?:0|[1-9])\d*(?:\.\d+)?(?:[eE][+-]\d+)?/
+  ISO8601_ZULU_CAPTURE  = /^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)Z$/
+  NUM_CAPTURE           = /^(#{NUM_MATCH})$/
 end

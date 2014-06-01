@@ -28,6 +28,11 @@ describe Lines::Generator do
     expect_dump(3 => 4).to eq("3=4")
   end
 
+  it "escapes ambiguous strings" do
+    expect_dump(x: '4', y: '-3.3').to eq("x='4' y='-3.3'")
+    expect_dump(a: '#t', b: '#f', c: 'nil').to eq("a='#t' b='#f' c='nil'")
+  end
+
   it "handles some random stuff" do
     expect_dump("" => "").to eq("=")
     expect_dump('"' => 'zzz').to eq('\'"\'=zzz')

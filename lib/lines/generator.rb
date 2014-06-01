@@ -66,7 +66,7 @@ module Lines
       if depth < 0
         '...'
       else
-        x.map{|k,v| "#{strenc(k)}=#{valenc(v, depth)}" }.join(SPACE)
+        x.map{|k,v| "#{keyenc(k)}=#{valenc(v, depth)}" }.join(SPACE)
       end
     end
 
@@ -99,12 +99,26 @@ module Lines
       end
     end
 
-    def strenc(s)
+    def keyenc(s)
       s = s.to_s
       # Poor-man's escaping
       if s.include?(SINGLE_QUOTE)
         s.inspect
       elsif s.index(/[\s"=:{}\[\]]/)
+        SINGLE_QUOTE +
+          s.inspect[1..-2].gsub('\\"', '"') +
+        SINGLE_QUOTE
+      else
+        s
+      end
+    end
+
+    def strenc(s)
+      s = s.to_s
+      # Poor-man's escaping
+      if s.include?(SINGLE_QUOTE)
+        s.inspect
+      elsif s.index(/[\s"=:{}\[\]]/) || s =~ NUM_CAPTURE || [LIT_TRUE, LIT_FALSE, LIT_NIL].include?(s)
         SINGLE_QUOTE +
           s.inspect[1..-2].gsub('\\"', '"') +
         SINGLE_QUOTE
