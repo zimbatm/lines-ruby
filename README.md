@@ -30,7 +30,6 @@ Make sure the output is encoded as a UTF-8 string
 Parser TODO
 -----------
 
-Implement the symbolize_names option
 Implement the max_nesting option
 
 Different parsing modes. Strict and non-strict. Type templates.

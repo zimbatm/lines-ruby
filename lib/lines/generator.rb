@@ -40,6 +40,7 @@ module Lines
   # This dumper has been inspired by the OkJSON gem (both formats look alike
   # after all).
   module Generator; extend self
+    SINGLE_QUOTE_MATCH  = /'/
     STRING_ESCAPE_MATCH = /[\s"=:{}\[\]]/
 
     # max_nesting::
@@ -51,15 +52,6 @@ module Lines
     end
 
     protected
-
-    def objenc_internal(x, depth)
-      depth -= 1
-      if depth < 0
-        DOT_DOT_DOT
-      else
-        x.map{|k,v| "#{keyenc(k)}=#{valenc(v, depth)}" }.join(SPACE)
-      end
-    end
 
     def valenc(x, depth)
       case x
@@ -77,25 +69,39 @@ module Lines
       end
     end
 
+    def objenc_internal(x, depth)
+      depth -= 1
+      if depth < 0
+        DOT_DOT_DOT
+      else
+        x.map{|k,v| "#{keyenc(k)}=#{valenc(v, depth)}" }.join(SPACE)
+      end
+    end
+
     def objenc(x, depth)
       OPEN_BRACE + objenc_internal(x, depth) + SHUT_BRACE
     end
 
-    def arrenc(a, depth)
+    def arrenc_internal(a, depth)
       depth -= 1
-      OPEN_BRACKET + if depth < 0
+      if depth < 0
         DOT_DOT_DOT
       else
         a.map{|x| valenc(x, depth)}.join(SPACE)
-      end + SHUT_BRACKET
+      end
+    end
+
+    def arrenc(a, depth)
+      OPEN_BRACKET + arrenc_internal(a, depth) + SHUT_BRACKET
     end
 
     def keyenc(s)
       s = s.to_s
       # Poor-man's escaping
-      if s.include?(SINGLE_QUOTE)
+      case s
+      when SINGLE_QUOTE_MATCH
         s.inspect
-      elsif s.index(STRING_ESCAPE_MATCH)
+      when STRING_ESCAPE_MATCH
         SINGLE_QUOTE +
           s.inspect[1..-2].gsub(ESCAPED_DOUBLE_QUOTE, DOUBLE_QUOTE) +
         SINGLE_QUOTE
@@ -107,9 +113,10 @@ module Lines
     def strenc(s)
       s = s.to_s
       # Poor-man's escaping
-      if s.include?(SINGLE_QUOTE)
+      case s
+      when SINGLE_QUOTE_MATCH
         s.inspect
-      elsif s.index(STRING_ESCAPE_MATCH) || s =~ NUM_CAPTURE || [LIT_TRUE, LIT_FALSE, LIT_NIL].include?(s)
+      when STRING_ESCAPE_MATCH, NUM_CAPTURE, LIT_TRUE, LIT_FALSE, LIT_NIL, DOT_DOT_DOT
         SINGLE_QUOTE +
           s.inspect[1..-2].gsub(ESCAPED_DOUBLE_QUOTE, DOUBLE_QUOTE) +
         SINGLE_QUOTE
