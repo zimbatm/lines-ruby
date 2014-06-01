@@ -1,3 +1,5 @@
+require 'strscan'
+
 require 'lines/common'
 
 module Lines
@@ -13,8 +15,15 @@ module Lines
     DOUBLE_QUOTE          = '"'
     BACKSLASH             = '\\'
 
+    LIT_TRUE              = '#t'
+    LIT_FALSE             = '#f'
+    LIT_NIL               = 'nil'
+
     ESCAPED_SINGLE_QUOTE  = "\\'"
     ESCAPED_DOUBLE_QUOTE  = '\"'
+
+    DOT_DOT_DOT           = '...'
+    DOT_DOT_DOT_MATCH     = /\.\.\./
 
     LITERAL_MATCH         = /[^=\s}\]]+/
     SINGLE_QUOTE_MATCH    = /(?:\\.|[^'])*/
@@ -24,11 +33,7 @@ module Lines
     ISO8601_ZULU_CAPTURE  = /^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)Z$/
     NUM_CAPTURE           = /^(#{NUM_MATCH})$/
 
-    # Speeds parsing up a bit
     constants.each(&:freeze)
-
-    EOF                   = nil
-
 
     def self.load(string, opts={})
       new.parse(string, opts)
@@ -42,49 +47,34 @@ module Lines
     protected
 
     def init(string)
-      @string = string
-      @pos = 0
-      @c = @string[0]
-    end
-
-    def getc
-      @pos += 1
-      @c = @string[@pos]
+      @s = StringScanner.new(string)
+      @c = string[0]
     end
 
     def accept(char)
-      if @c == char
-        getc
+      if @s.peek(1) == char
+        @s.pos += 1
         return true
       end
       false
     end
 
-    def peek(num)
-      @string[@pos+num]
-    end
-
     def skip(num)
-      @pos += num
-      @c = @string[@pos]
-    end
-
-    def match(reg)
-      @string.match(reg, @pos)
+      @s.pos += num
     end
 
     def expect(char)
       if !accept(char)
-        fail "Expected '#{char}' but got '#{@c}'"
+        fail "Expected '#{char}' but got '#{@s.peek(1)}'"
       end
     end
 
     def fail(msg)
-      raise ParseError, "At #{@pos}, #{msg}"
+      raise ParseError, "At #{@s.pos}, #{msg}"
     end
 
     def dbg(*x)
-      #p [@pos, @c, @string[0..@pos]] + x
+      #p [@s.pos, @c, @string[0..@s.pos]] + x
     end
 
     # Structures
@@ -93,14 +83,11 @@ module Lines
     def inner_obj
       dbg :inner_obj
       # Shortcut for the '...' max_depth notation
-      if @c == DOT && peek(1) == DOT && peek(2) == DOT
-        expect DOT
-        expect DOT
-        expect DOT
-        return {'...' => ''}
+      if @s.scan(DOT_DOT_DOT_MATCH)
+        return {DOT_DOT_DOT => ''}
       end
 
-      return {} if @c == EOF || @c == SHUT_BRACE
+      return {} if @s.eos? || @s.peek(1) == SHUT_BRACE
 
       # First pair
       k = key()
@@ -121,9 +108,10 @@ module Lines
     def key
       dbg :key
 
-      if @c == SINGLE_QUOTE
+      case @s.peek(1)
+      when SINGLE_QUOTE
         single_quoted_string
-      elsif @c == DOUBLE_QUOTE
+      when DOUBLE_QUOTE
         double_quoted_string
       else
         literal(false)
@@ -134,10 +122,8 @@ module Lines
       dbg :single_quoted_string
 
       expect SINGLE_QUOTE
-      md = match SINGLE_QUOTE_MATCH
-      str = md[0].gsub ESCAPED_SINGLE_QUOTE, SINGLE_QUOTE
-      skip md[0].size
-
+      str = @s.scan(SINGLE_QUOTE_MATCH).
+        gsub(ESCAPED_SINGLE_QUOTE, SINGLE_QUOTE)
       expect SINGLE_QUOTE
       str
     end
@@ -146,10 +132,8 @@ module Lines
       dbg :double_quoted_string
 
       expect DOUBLE_QUOTE
-      md = match DOUBLE_QUOTE_MATCH
-      str = md[0].gsub ESCAPED_DOUBLE_QUOTE, DOUBLE_QUOTE
-      skip md[0].size
-
+      str = @s.scan(DOUBLE_QUOTE_MATCH).
+        gsub(ESCAPED_DOUBLE_QUOTE, DOUBLE_QUOTE)
       expect DOUBLE_QUOTE
       str
     end
@@ -157,19 +141,18 @@ module Lines
     def literal(sub_parse)
       dbg :literal, sub_parse
 
-      return "" unless ((md = match LITERAL_MATCH))
+      literal = @s.scan LITERAL_MATCH
 
-      literal = md[0]
-      skip literal.size
+      return "" unless literal
       
       return literal unless sub_parse
 
       case literal
-      when 'nil'
+      when LIT_NIL
         nil
-      when '#t'
+      when LIT_TRUE
         true
-      when '#f'
+      when LIT_FALSE
         false
       when ISO8601_ZULU_CAPTURE
         Time.new($1.to_i, $2.to_i, $3.to_i, $4.to_i, $5.to_i, $6.to_i, '+00:00').utc
@@ -183,7 +166,7 @@ module Lines
     def value
       dbg :value
 
-      case @c
+      case @s.peek(1)
       when OPEN_BRACKET
         list
       when OPEN_BRACE
@@ -202,9 +185,9 @@ module Lines
 
       list = []
       expect(OPEN_BRACKET)
-      list.push value
+      list.push value()
       while accept(SPACE)
-        list.push value
+        list.push value()
       end
       expect(SHUT_BRACKET)
       list
