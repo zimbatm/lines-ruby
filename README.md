@@ -1,7 +1,7 @@
 Lines - structured logs for humans
 ==================================
 [![Build
-Status](https://travis-ci.org/zimbatm/lines-ruby.png)](https://travis-ci.org/zimbatm/lines-ruby)
+Status](https://travis-ci.org/zimbatm/lines-ruby.svg?branch=master)](https://travis-ci.org/zimbatm/lines-ruby)
 
 A ruby implementation of the
 [lines](https://github.com/zimbatm/lines) format.
