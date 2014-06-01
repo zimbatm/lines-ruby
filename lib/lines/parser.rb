@@ -1,9 +1,7 @@
+require 'lines/common'
+
 module Lines
-  module Error; end
-
-  class Loader
-    class ParseError < StandardError; include Error; end
-
+  class Parser
     DOT                   = '.'
     EQUAL                 = '='
     SPACE                 = ' '
@@ -25,7 +23,6 @@ module Lines
     NUM_MATCH             = /-?(?:0|[1-9])\d*(?:\.\d+)?(?:[eE][+-]\d+)?/
     ISO8601_ZULU_CAPTURE  = /^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)Z$/
     NUM_CAPTURE           = /^(#{NUM_MATCH})$/
-    UNIT_CAPTURE          = /^(#{NUM_MATCH}):(.+)/
 
     # Speeds parsing up a bit
     constants.each(&:freeze)
@@ -33,11 +30,11 @@ module Lines
     EOF                   = nil
 
 
-    def self.load(string)
-      new.parse(string)
+    def self.load(string, opts={})
+      new.parse(string, opts)
     end
 
-    def parse(string)
+    def parse(string, opts)
       init(string.rstrip)
       inner_obj
     end
@@ -178,10 +175,6 @@ module Lines
         Time.new($1.to_i, $2.to_i, $3.to_i, $4.to_i, $5.to_i, $6.to_i, '+00:00').utc
       when NUM_CAPTURE
         literal.index('.') ? Float(literal) : Integer(literal)
-      when UNIT_CAPTURE
-        num = $1.index('.') ? Float($1) : Integer($1)
-        unit = $2
-        [num, unit]
       else
         literal
       end

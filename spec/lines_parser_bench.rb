@@ -18,7 +18,7 @@ $data = {}
 formatters = [
   ['lines', "Lines.dump($message)", "Lines.load($data[:lines])"],
 
-  ['json', "$message.to_json", "JSON.load($data[:json])"],
+  ['json/pure', "JSON.dump($message)", "JSON.load($data[:'json/pure'])"],
   ['oj', "Oj.dump($message)", "Oj.load($data[:oj])"],
   ['yajl', "Yajl.dump($message)", "Yajl.load($data[:yajl])"],
   
@@ -39,7 +39,7 @@ Benchmark.ips do |x|
       msg = eval loader
 
       if $message != msg
-        p $message, msg
+        p [:invalid, $message, msg]
       end
 
       x.report feature, loader

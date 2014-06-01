@@ -16,7 +16,7 @@ $message = {
 formatters = [
   ['lines', "Lines.dump($message)"],
 
-  ['json', "$message.to_json"],
+  ['json/pure', "JSON.dump($message)"],
   ['oj', "Oj.dump($message)"],
   ['yajl', "Yajl.dump($message)"],
   

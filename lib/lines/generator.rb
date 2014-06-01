@@ -1,3 +1,8 @@
+require 'date'
+require 'time'
+
+require 'lines/common'
+
 module Lines
   # Some opinions here as well on the format:
   #
@@ -32,7 +37,7 @@ module Lines
   #
   # This dumper has been inspired by the OkJSON gem (both formats look alike
   # after all).
-  class Dumper
+  module Generator; extend self
     SPACE = ' '
     LIT_TRUE = '#t'
     LIT_FALSE = '#f'
@@ -44,56 +49,24 @@ module Lines
     SINGLE_QUOTE = "'"
     DOUBLE_QUOTE = '"'
 
-    constants.select{|x| x.kind_of?(String) }.each(&:freeze)
+    constants.each(&:freeze)
 
-    def dump(obj) #=> String
-      objenc_internal(obj)
+    # max_nesting::
+    #   After a certain depth, arrays are replaced with [...] and objects with
+    #   {...}. Default is 4
+    def dump(obj, opts={}) #=> String
+      max_nesting = opts[:max_nesting] || 4
+      objenc_internal(obj, max_nesting)
     end
-
-    # Used to introduce new ruby litterals.
-    #
-    # Usage:
-    #
-    #     Point = Struct.new(:x, :y)
-    #     Lines.dumper.map(Point) do |p|
-    #       "#{p.x}x#{p.y}"
-    #     end
-    #
-    #     Lines.log msg: Point.new(3, 5)
-    #     # logs: msg=3x5
-    #
-    def map(klass, &rule)
-      @mapping[klass] = rule
-    end
-
-    # After a certain depth, arrays are replaced with [...] and objects with
-    # {...}. Default is 4.
-    attr_accessor :max_depth
-    # TODO: rename to max_nesting
 
     protected
 
-    attr_reader :mapping
-
-    def initialize
-      @mapping = {}
-      @max_depth = 4
-    end
-
-    def objenc_internal(x, depth=0)
-      depth += 1
-      if depth > max_depth
+    def objenc_internal(x, depth)
+      depth -= 1
+      if depth < 0
         '...'
       else
-        x.map{|k,v| "#{keyenc(k)}=#{valenc(v, depth)}" }.join(SPACE)
-      end
-    end
-
-    def keyenc(k)
-      case k
-      when String, Symbol then strenc(k)
-      else
-        strenc(k.inspect)
+        x.map{|k,v| "#{strenc(k)}=#{valenc(v, depth)}" }.join(SPACE)
       end
     end
 
@@ -118,11 +91,8 @@ module Lines
     end
 
     def arrenc(a, depth)
-      depth += 1
-      # num + unit. Eg: 3ms
-      if a.size == 2 && a.first.kind_of?(Numeric) && is_literal?(a.last.to_s)
-        "#{numenc(a.first)}:#{strenc(a.last)}"
-      elsif depth > max_depth
+      depth -= 1
+      if depth < 0
         '[...]'
       else
         OPEN_BRACKET + a.map{|x| valenc(x, depth)}.join(' ') + SHUT_BRACKET
@@ -131,15 +101,17 @@ module Lines
 
     def strenc(s)
       s = s.to_s
-      unless is_literal?(s)
-        s = s.inspect
-        unless s[1..-2].include?(SINGLE_QUOTE)
-          s.gsub!(SINGLE_QUOTE, "\\'")
-          s.gsub!('\"', DOUBLE_QUOTE)
-          s[0] = s[-1] = SINGLE_QUOTE
-        end
+      # Poor-man's escaping
+      # TODO: Scrub non-unicode characters
+      if s.include?(SINGLE_QUOTE)
+        s.inspect
+      elsif s.index(/[\s"=:{}\[\]]/)
+        SINGLE_QUOTE +
+          s.inspect[1..-2].gsub('\\"', '"') +
+        SINGLE_QUOTE
+      else
+        s
       end
-      s
     end
 
     def numenc(n)
@@ -152,12 +124,7 @@ module Lines
     end
 
     def litenc(x)
-      klass = (x.class.ancestors & mapping.keys).first
-      if klass
-        mapping[klass].call(x)
-      else
-        strenc(x.inspect)
-      end
+      strenc x.inspect
     rescue
       strenc (class << x; self; end).ancestors.first.inspect
     end
@@ -169,10 +136,5 @@ module Lines
     def dateenc(d)
       d.iso8601
     end
-
-    def is_literal?(s)
-      !s.index(/[\s'"=:{}\[\]]/)
-    end
-
   end
 end
