@@ -28,6 +28,7 @@ module Lines
     end
 
     def parse(string, opts)
+      # TODO: make use of the opts
       init(string)
       inner_obj
     end
@@ -36,7 +37,6 @@ module Lines
 
     def init(string)
       @s = StringScanner.new(string)
-      @c = string[0]
     end
 
     def accept(char)

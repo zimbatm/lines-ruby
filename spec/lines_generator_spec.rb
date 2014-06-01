@@ -33,17 +33,17 @@ describe Lines::Generator do
     expect_dump('"' => 'zzz').to eq('\'"\'=zzz')
   end
 
-#   it "parses sample log lines" do
-#     expect_load("commit=716f337").to eq("commit" => "716f337")
+  it "generates sample log lines" do
+    expect_dump("commit" => "716f337").to eq("commit=716f337")
 
-#     line = <<LINE
-# at=2013-07-12T21:33:47Z commit=716f337 sql="SELECT FROM_UNIXTIME(UNIX_TIMESTAMP(created_at) - UNIX_TIMESTAMP(created_at)%(300)) as timestamp FROM `job_queue_logs` WHERE `job_queue_logs`.`account_id` = 'effe376baf553c590c02090abe512278' AND (created_at >= '2013-06-28 16:56:12') GROUP BY timestamp" elapsed=[31.9 ms]
-# LINE
-#     expect_load(line).to eq(
-#       "at" => Time.at(1373664827).utc,
-#       "commit" => "716f337",
-#       "sql" => "SELECT FROM_UNIXTIME(UNIX_TIMESTAMP(created_at) - UNIX_TIMESTAMP(created_at)%(300)) as timestamp FROM `job_queue_logs` WHERE `job_queue_logs`.`account_id` = 'effe376baf553c590c02090abe512278' AND (created_at >= '2013-06-28 16:56:12') GROUP BY timestamp",
-#       "elapsed" => [31.9, "ms"],
-#     )
-#   end
+    line = <<LINE.rstrip
+at=2013-07-12T21:33:47Z commit=716f337 sql="SELECT FROM_UNIXTIME(UNIX_TIMESTAMP(created_at) - UNIX_TIMESTAMP(created_at)%(300)) as timestamp FROM `job_queue_logs` WHERE `job_queue_logs`.`account_id` = 'effe376baf553c590c02090abe512278' AND (created_at >= '2013-06-28 16:56:12') GROUP BY timestamp" elapsed=[31.9 ms]
+LINE
+    expect_dump(
+      "at" => Time.at(1373664827).utc,
+      "commit" => "716f337",
+      "sql" => "SELECT FROM_UNIXTIME(UNIX_TIMESTAMP(created_at) - UNIX_TIMESTAMP(created_at)%(300)) as timestamp FROM `job_queue_logs` WHERE `job_queue_logs`.`account_id` = 'effe376baf553c590c02090abe512278' AND (created_at >= '2013-06-28 16:56:12') GROUP BY timestamp",
+      "elapsed" => [31.9, "ms"],
+    ).to eq(line)
+  end
 end
