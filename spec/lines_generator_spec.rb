@@ -38,6 +38,10 @@ describe Lines::Generator do
     expect_dump('"' => 'zzz').to eq('\'"\'=zzz')
   end
 
+  it "escapes various whitespace characters" do
+    expect_dump("\r\n\t" => "\r\n\t").to eq('\'\r\n\t\'=\'\r\n\t\'')
+  end
+
   it "generates sample log lines" do
     expect_dump("commit" => "716f337").to eq("commit=716f337")
 

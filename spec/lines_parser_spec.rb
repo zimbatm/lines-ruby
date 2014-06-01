@@ -51,6 +51,11 @@ describe Lines::Parser do
     expect_load("foo=bar", symbolize_names: true).to eq(foo: "bar")
   end
 
+  it "restores escaped characters from a string" do
+    pending
+    expect_load('\'\r\n\t\'=\'\r\n\t\'').to eq("\r\n\t" => "\r\n\t")
+  end
+
   it "parses sample log lines" do
     expect_load("commit=716f337").to eq("commit" => "716f337")
 
