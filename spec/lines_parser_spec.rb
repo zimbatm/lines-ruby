@@ -2,10 +2,10 @@ require 'spec_helper'
 require 'lines/parser'
 
 describe Lines::Parser do
-  subject { Lines::Parser.new }
+  subject { Lines::Parser }
 
   def expect_parse(str, opts={})
-    expect(subject.parse str, opts)
+    expect(subject.load str, opts)
   end
 
   it "can load stuff" do
