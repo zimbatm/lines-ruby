@@ -20,6 +20,14 @@ Lines.dump(foo: 3) #=> "foo=3"
 Lines.load("foo=3") #=> {"foo"=>3}
 ```
 
+Uses
+----
+
+CLI pipes format
+
+Structued logging
+
+
 Generator TODO
 --------------
 

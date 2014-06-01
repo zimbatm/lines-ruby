@@ -21,6 +21,10 @@ describe Lines::Parser do
     expect_load('x=foo ').to eq("x" => "foo")
   end
 
+  it "handles \\n at the end of line" do
+    expect_load("x=foo\n").to eq("x" => "foo")
+  end
+
   it "treats missing value in a pair as an empty string" do
     expect_load('x=').to eq("x" => "")
   end
