@@ -54,7 +54,7 @@ module Lines
     # max_nesting::
     #   After a certain depth, arrays are replaced with [...] and objects with
     #   {...}. Default is 4
-    def dump(obj, opts={}) #=> String
+    def generate(obj, opts={}) #=> String
       max_nesting = opts[:max_nesting] || 4
       objenc_internal(obj, max_nesting)
     end

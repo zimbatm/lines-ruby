@@ -20,3 +20,11 @@ Lines.dump(foo: 3) #=> "foo=3"
 Lines.load("foo=3") #=> {"foo"=>3}
 ```
 
+TODO
+----
+
+Different parsing modes. Strict and non-strict. Type templates.
+
+Multi-line parsing.
+
+

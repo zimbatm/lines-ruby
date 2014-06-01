@@ -2,10 +2,8 @@ require 'spec_helper'
 require 'lines/generator'
 
 describe Lines::Generator do
-  subject { Lines::Generator }
-
   def expect_dump(obj, opts={})
-    expect(subject.dump obj, opts)
+    expect(subject.generate obj, opts)
   end
 
   it "can dump stuff" do

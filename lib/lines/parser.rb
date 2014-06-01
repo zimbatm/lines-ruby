@@ -5,19 +5,8 @@ require 'lines/common'
 module Lines
   class Parser
     EQUAL                 = '='
-    SPACE                 = ' '
-    OPEN_BRACKET          = '['
-    SHUT_BRACKET          = ']'
-    OPEN_BRACE            = '{'
-    SHUT_BRACE            = '}'
-    SINGLE_QUOTE          = "'"
-    DOUBLE_QUOTE          = '"'
     BACKSLASH             = '\\'
-
-    LIT_TRUE              = '#t'
-    LIT_FALSE             = '#f'
-    LIT_NIL               = 'nil'
-
+    
     ESCAPED_SINGLE_QUOTE  = "\\'"
     ESCAPED_DOUBLE_QUOTE  = '\"'
 
@@ -34,7 +23,7 @@ module Lines
 
     constants.each(&:freeze)
 
-    def self.load(string, opts={})
+    def self.parse(string, opts={})
       new.parse(string, opts)
     end
 
