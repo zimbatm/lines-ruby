@@ -15,9 +15,11 @@ module Lines; extend self
 
   # The global default options for the Lines.dump method:
   #   max_nesting: 4
+  #   max_size: 2048,
   attr_reader :generate_default_options
   @generate_default_options = {
     max_nesting: 4,
+    max_bytesize: 2048,
   }
 
   attr_accessor :parser
@@ -43,6 +45,8 @@ module Lines; extend self
   # _options_ can have the following keys:
   # * *max_nesting*: The maximum depth of nesting allowed in the data
   #   structures from which Lines is to be generated. It defaults to 4.
+  # * *max_bytesize*: The maximum number of bytes for a line to be constructed
+  #   on. It defaults to 2048.
   def generate(obj, options = {})
     opts = Lines.generate_default_options.merge(options.to_hash)
     @generator.generate(obj.to_hash, opts)

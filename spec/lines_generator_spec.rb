@@ -15,6 +15,13 @@ describe Lines::Generator do
     expect_dump({x: {y: 444}}, max_nesting: 1).to eq('x={...}')
   end
 
+  it "handles max_size items" do
+    expect_dump({a: "aaa", b: "bbb", c: "cccc"}, max_bytesize: 18).to eq('a=aaa b=bbb c=cccc')
+    expect_dump({a: "aaa", b: "bbb", c: "cccc"}, max_bytesize: 17).to eq('a=aaa b=bbb ...')
+    expect_dump({a: "aaa", b: "bbb", c: "cccc"}, max_bytesize: 15).to eq('a=aaa b=bbb ...')
+    expect_dump({a: "aaa", b: "bbb", c: "cccc"}, max_bytesize: 14).to eq('a=aaa ...')
+  end
+
   it "treats missing value in a pair as an empty string" do
     expect_dump(x: '').to eq("x=")
   end

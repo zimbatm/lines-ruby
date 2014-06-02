@@ -45,9 +45,32 @@ module Lines
     # max_nesting::
     #   After a certain depth, arrays are replaced with [...] and objects with
     #   {...}. Default is 4
+    # max_bytesize::
+    #   After a certain lenght the root object is interrupted by the ...
+    #   notation. Default is 4096.
     def generate(obj, opts={}) #=> String
       max_nesting = opts[:max_nesting] || 4
-      objenc_internal(obj, max_nesting)
+      max_bytesize = opts[:max_bytesize] || 4096
+
+      depth = max_nesting - 1
+      bytesize = 0
+
+      line = obj.inject([]) do |acc, (k, v)|
+        if bytesize + (acc.size - 1) > max_bytesize
+          break acc
+        end
+        str = "#{keyenc(k)}=#{valenc(v, depth)}"
+        bytesize += str.bytesize
+        acc.push(str)
+        acc
+      end
+      if bytesize + (line.size - 1) > max_bytesize
+        if bytesize + (line.size - 1) - (line[-1].bytesize - 3) > max_bytesize
+          line.pop
+        end
+        line[-1] = DOT_DOT_DOT
+      end
+      line.join(SPACE)
     end
 
     protected
