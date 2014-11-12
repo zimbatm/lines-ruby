@@ -1,4 +1,15 @@
 
+0.9.0 / 2014-11-12
+==================
+
+Moved the logging part to a separate library called u-log.
+http://rubygems.org/gems/u-log
+
+ * REMOVED: All logging parts
+ * NEW: max_bytesize directive to limit line length
+ * FIX: BasicObject serialization for ruby 2.1+
+ * Tons of cleanup
+
 0.2.0 / 2013-07-15 
 ==================
 
